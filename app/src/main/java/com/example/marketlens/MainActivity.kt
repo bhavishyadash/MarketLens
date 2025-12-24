@@ -3,9 +3,8 @@ package com.example.marketlens
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import com.example.marketlens.ui.dashboard.DashboardScreen
+import androidx.navigation.compose.rememberNavController
+import com.example.marketlens.navigation.AppScaffold
 import com.example.marketlens.ui.theme.MarketLensTheme
 
 class MainActivity : ComponentActivity() {
@@ -14,9 +13,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MarketLensTheme {
-                Surface(modifier = Modifier) {
-                    DashboardScreen()
-                }
+                val navController = rememberNavController()
+                AppScaffold(navController = navController)
             }
         }
     }
