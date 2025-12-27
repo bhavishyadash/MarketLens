@@ -30,29 +30,33 @@ fun AppScaffold(navController: NavHostController) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
+    val showBottomBar = currentRoute in items.map { it.route }
+
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                items.forEach { item ->
-                    val selected = currentRoute == item.route
+            if (showBottomBar) {
+                NavigationBar {
+                    items.forEach { item ->
+                        val selected = currentRoute == item.route
 
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            navController.navigate(item.route) {
-                                popUpTo(AppRoute.Dashboard.route) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                navController.navigate(item.route) {
+                                    popUpTo(AppRoute.Dashboard.route) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            label = { Text(text = item.label) },
+                            icon = {
+                                Icon(
+                                    imageVector = iconForRoute(item.route),
+                                    contentDescription = item.label
+                                )
                             }
-                        },
-                        label = { Text(text = item.label) },
-                        icon = {
-                            Icon(
-                                imageVector = iconForRoute(item.route),
-                                contentDescription = item.label
-                            )
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
