@@ -2,13 +2,20 @@ package com.example.marketlens.viewmodel
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.marketlens.network.ApiResult
+import com.example.marketlens.repository.FakeMarketRepository
+import com.example.marketlens.repository.MarketRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class StockDetailViewModel(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    private val repo: MarketRepository = FakeMarketRepository()
 
     private val _state = MutableStateFlow(StockDetailState())
     val state: StateFlow<StockDetailState> = _state.asStateFlow()
@@ -16,37 +23,34 @@ class StockDetailViewModel(
     private val symbol: String = savedStateHandle["symbol"] ?: "UNKNOWN"
 
     init {
-        loadFake(symbol)
+        load(symbol)
     }
 
-    private fun loadFake(symbol: String) {
-        // Same fake universe as Markets for now
-        val fake = listOf(
-            StockRowUi("AAPL", "Apple Inc.", 187.23, 1.12),
-            StockRowUi("MSFT", "Microsoft", 412.10, -0.38),
-            StockRowUi("NVDA", "NVIDIA", 890.22, 2.41),
-            StockRowUi("TSLA", "Tesla", 242.88, -3.72),
-            StockRowUi("AMZN", "Amazon", 156.44, 0.65),
-            StockRowUi("GOOGL", "Alphabet", 141.88, 0.54),
-            StockRowUi("META", "Meta", 355.70, -0.92)
-        ).associateBy { it.symbol }
+    private fun load(symbol: String) {
+        _state.value = _state.value.copy(isLoading = true, errorMessage = null)
 
-        val item = fake[symbol]
-
-        _state.value = if (item != null) {
-            StockDetailState(
-                symbol = item.symbol,
-                price = item.price,
-                percentChange = item.percentChange,
-                isLoading = false,
-                errorMessage = null
-            )
-        } else {
-            StockDetailState(
-                symbol = symbol,
-                isLoading = false,
-                errorMessage = "No data for $symbol"
-            )
+        viewModelScope.launch {
+            when (val result = repo.getQuote(symbol)) {
+                is ApiResult.Success -> {
+                    val item = result.data
+                    _state.value = StockDetailState(
+                        symbol = item.symbol,
+                        price = item.price,
+                        percentChange = item.percentChange,
+                        isLoading = false,
+                        errorMessage = null
+                    )
+                }
+                is ApiResult.Error -> {
+                    _state.value = StockDetailState(
+                        symbol = symbol,
+                        price = 0.0,
+                        percentChange = 0.0,
+                        isLoading = false,
+                        errorMessage = result.message
+                    )
+                }
+            }
         }
     }
 }
