@@ -11,14 +11,20 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun StockDetailScreen(
     symbol: String,
+    price: Double,
+    percentChange: Double,
     onBack: () -> Unit
 ) {
+    val isUp = percentChange >= 0.0
+    val changeColor = if (isUp) Color(0xFF4CAF50) else Color(0xFFF44336)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Top bar: Back + Symbol
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -27,31 +33,54 @@ fun StockDetailScreen(
             Text(text = symbol, style = MaterialTheme.typography.titleLarge)
         }
 
-        // Price header (fake for now)
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Price header
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text("Price", color = Color.Gray)
-                Text("$242.88", style = MaterialTheme.typography.headlineSmall)
-                Text("-3.72% today", color = Color(0xFFF44336))
+                Text(
+                    text = "$${"%.2f".format(price)}",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = "${"%.2f".format(percentChange)}% today",
+                    color = changeColor
+                )
             }
         }
 
-        // Fake chart placeholder
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Chart placeholder
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Text("Chart (placeholder)", style = MaterialTheme.typography.titleMedium)
                 Divider(color = Color(0xFF2A2F3A))
                 Text("Timeframes: 1D 1W 1M 1Y", color = Color.Gray)
                 Spacer(Modifier.height(140.dp))
-                Text("Chart goes here later (MPAndroidChart or custom Canvas)", color = Color.Gray)
+                Text(
+                    "Chart goes here later (MPAndroidChart or custom Canvas)",
+                    color = Color.Gray
+                )
             }
         }
 
-        // Key stats (fake)
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Key stats placeholder
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 Text("Key Stats", style = MaterialTheme.typography.titleMedium)
-
                 StatRow("Market Cap", "—")
                 StatRow("P/E", "—")
                 StatRow("52W High", "—")
@@ -60,10 +89,18 @@ fun StockDetailScreen(
         }
 
         // Planned feature placeholder
-        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 Text("Target Return Simulator", style = MaterialTheme.typography.titleMedium)
-                Text("Coming soon: probability + time-to-target estimates (informational).", color = Color.Gray)
+                Text(
+                    "Coming soon: probability + time-to-target estimates (informational).",
+                    color = Color.Gray
+                )
             }
         }
     }
@@ -71,7 +108,10 @@ fun StockDetailScreen(
 
 @Composable
 private fun StatRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
         Text(label, color = Color.Gray)
         Text(value)
     }

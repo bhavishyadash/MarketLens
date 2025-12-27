@@ -22,8 +22,10 @@ fun AppNavGraph(navController: NavHostController) {
 
         composable(AppRoute.Markets.route) {
             MarketsScreen(
-                onStockClick = { symbol ->
-                    navController.navigate(AppRoute.StockDetail.create(symbol))
+                onStockClick = { stock ->
+                    navController.navigate(
+                        AppRoute.StockDetail.create(stock.symbol, stock.price, stock.percentChange)
+                    )
                 }
             )
         }
@@ -33,10 +35,22 @@ fun AppNavGraph(navController: NavHostController) {
 
         composable(
             route = AppRoute.StockDetail.route,
-            arguments = listOf(navArgument("symbol") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("symbol") { type = NavType.StringType },
+                navArgument("price") { type = NavType.StringType },
+                navArgument("change") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
             val symbol = backStackEntry.arguments?.getString("symbol") ?: "UNKNOWN"
-            StockDetailScreen(symbol = symbol, onBack = { navController.popBackStack() })
+            val price = backStackEntry.arguments?.getString("price")?.toDoubleOrNull() ?: 0.0
+            val change = backStackEntry.arguments?.getString("change")?.toDoubleOrNull() ?: 0.0
+
+            StockDetailScreen(
+                symbol = symbol,
+                price = price,
+                percentChange = change,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

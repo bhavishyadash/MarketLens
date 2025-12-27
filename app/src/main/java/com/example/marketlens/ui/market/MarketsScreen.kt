@@ -15,7 +15,7 @@ import com.example.marketlens.viewmodel.StockRowUi
 
 @Composable
 fun MarketsScreen(
-    onStockClick: (String) -> Unit,
+    onStockClick: (StockRowUi) -> Unit,
     viewModel: MarketsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -55,7 +55,7 @@ fun MarketsScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(state.filteredStocks) { stock ->
-                StockRow(stock, onClick = { onStockClick(stock.symbol) })
+                StockRow(stock, onClick = { onStockClick(stock) })
             }
         }
     }

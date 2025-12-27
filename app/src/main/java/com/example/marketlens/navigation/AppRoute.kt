@@ -6,8 +6,8 @@ sealed class AppRoute(val route: String, val label: String) {
     data object News : AppRoute("news", "News")
     data object Watchlist : AppRoute("watchlist", "Watchlist")
 
-    // Not shown in bottom nav, so label can be empty (but NOT null)
-    data object StockDetail : AppRoute("stock/{symbol}", "") {
-        fun create(symbol: String) = "stock/$symbol"
+    data object StockDetail : AppRoute("stock/{symbol}/{price}/{change}", "") {
+        fun create(symbol: String, price: Double, change: Double): String =
+            "stock/$symbol/${price}/${change}"
     }
 }
