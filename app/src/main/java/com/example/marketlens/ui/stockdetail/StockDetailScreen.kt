@@ -1,5 +1,7 @@
 package com.example.marketlens.ui.stockdetail
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -17,10 +19,12 @@ fun StockDetailScreen(
 ) {
     val isUp = percentChange >= 0.0
     val changeColor = if (isUp) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
