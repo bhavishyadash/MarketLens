@@ -15,6 +15,7 @@ import com.example.marketlens.viewmodel.StockRowUi
 
 @Composable
 fun MarketsScreen(
+    onStockClick: (String) -> Unit,
     viewModel: MarketsViewModel = viewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -54,17 +55,18 @@ fun MarketsScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(state.filteredStocks) { stock ->
-                StockRow(stock)
+                StockRow(stock, onClick = { onStockClick(stock.symbol) })
             }
         }
     }
 }
 
 @Composable
-private fun StockRow(stock: StockRowUi) {
+private fun StockRow(stock: StockRowUi, onClick: () -> Unit) {
     val changeColor = if (stock.isUp) Color(0xFF4CAF50) else Color(0xFFF44336)
 
     Card(
+        onClick = onClick,
         colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1D23))
     ) {
         Row(
@@ -77,14 +79,9 @@ private fun StockRow(stock: StockRowUi) {
                 Text(stock.symbol, style = MaterialTheme.typography.titleMedium)
                 Text(stock.name, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
-
             Column(horizontalAlignment = Alignment.End) {
                 Text("$${stock.price}")
-                Text(
-                    text = "${stock.percentChange}%",
-                    color = changeColor,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Text("${stock.percentChange}%", color = changeColor)
             }
         }
     }
