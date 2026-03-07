@@ -28,6 +28,8 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
         }
         else -> {
             val changeColor = if (state.percentChange >= 0.0) PriceUp else PriceDown
+            val candle = state.candle  // local val fixes the smart cast error
+
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), Arrangement.spacedBy(14.dp)) {
 
                 // Top bar
@@ -70,9 +72,9 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
                             state.candleError != null -> Box(Modifier.fillMaxWidth().height(100.dp), Alignment.Center) {
                                 Text(state.candleError!!, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                             }
-                            state.candle != null && state.candle.hasData -> Box(Modifier.fillMaxWidth().height(160.dp), Alignment.Center) {
+                            candle != null && candle.hasData -> Box(Modifier.fillMaxWidth().height(160.dp), Alignment.Center) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("${state.candle.closePrices.size} data points loaded ✓", style = MaterialTheme.typography.bodySmall, color = PriceUp)
+                                    Text("${candle.closePrices.size} data points loaded ✓", style = MaterialTheme.typography.bodySmall, color = PriceUp)
                                     Text("Chart renders here in Phase 3", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
