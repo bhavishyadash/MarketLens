@@ -17,7 +17,7 @@ import com.example.marketlens.viewmodel.StockDetailViewModel
 @Composable
 fun AppNavGraph(navController: NavHostController) {
     NavHost(
-        navController = navController,
+        navController    = navController,
         startDestination = AppRoute.Dashboard.route
     ) {
         composable(AppRoute.Dashboard.route) {
@@ -41,13 +41,14 @@ fun AppNavGraph(navController: NavHostController) {
         }
 
         composable(
-            route = AppRoute.StockDetail.route,
+            route     = AppRoute.StockDetail.route,
             arguments = listOf(navArgument("symbol") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val vm: StockDetailViewModel = viewModel(backStackEntry)
+        ) {
+            // Pass our Factory so the ViewModel gets SavedStateHandle + repo correctly
+            val vm: StockDetailViewModel = viewModel(factory = StockDetailViewModel.Factory)
             StockDetailScreen(
                 viewModel = vm,
-                onBack = { navController.popBackStack() }
+                onBack    = { navController.popBackStack() }
             )
         }
     }
