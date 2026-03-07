@@ -1,6 +1,7 @@
 package com.example.marketlens.data.network
 
 import com.example.marketlens.data.network.dto.CandleDto
+import com.example.marketlens.data.network.dto.NewsArticleDto
 import com.example.marketlens.data.network.dto.QuoteDto
 import com.example.marketlens.data.network.dto.SearchResponseDto
 import retrofit2.http.GET
@@ -21,4 +22,14 @@ interface MarketApi {
         @Query("from")       from: Long,
         @Query("to")         to: Long
     ): CandleDto
+
+    @GET("news")
+    suspend fun getMarketNews(@Query("category") category: String = "general"): List<NewsArticleDto>
+
+    @GET("company-news")
+    suspend fun getCompanyNews(
+        @Query("symbol") symbol: String,
+        @Query("from")   from: String,
+        @Query("to")     to: String
+    ): List<NewsArticleDto>
 }
