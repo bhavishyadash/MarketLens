@@ -2,6 +2,7 @@ package com.example.marketlens.data.repository
 
 import com.example.marketlens.data.model.SearchResult
 import com.example.marketlens.data.model.StockCandle
+import com.example.marketlens.data.model.StockProfile
 import com.example.marketlens.data.model.StockQuote
 import com.example.marketlens.data.network.ApiResult
 
@@ -19,8 +20,7 @@ class FakeMarketRepository : MarketRepository {
 
     override suspend fun getQuote(symbol: String): ApiResult<StockQuote> {
         val quote = fakeData[symbol]
-        return if (quote != null) ApiResult.Success(quote)
-        else ApiResult.Error("No fake data for $symbol")
+        return if (quote != null) ApiResult.Success(quote) else ApiResult.Error("No fake data for $symbol")
     }
 
     override suspend fun searchSymbols(query: String): ApiResult<List<SearchResult>> {
@@ -32,5 +32,21 @@ class FakeMarketRepository : MarketRepository {
 
     override suspend fun getCandles(symbol: String, resolution: String, from: Long, to: Long): ApiResult<StockCandle> {
         return ApiResult.Success(StockCandle(emptyList(), emptyList(), "no_data"))
+    }
+
+    override suspend fun getStockProfile(symbol: String): ApiResult<StockProfile> {
+        return ApiResult.Success(
+            StockProfile(
+                symbol             = symbol,
+                name               = fakeData[symbol]?.name ?: symbol,
+                exchange           = "NASDAQ",
+                industry           = "Technology",
+                marketCapFormatted = "$2.80T",
+                week52High         = 199.62,
+                week52Low          = 124.17,
+                peRatio            = 28.5,
+                beta               = 1.2
+            )
+        )
     }
 }

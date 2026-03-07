@@ -4,6 +4,8 @@ import com.example.marketlens.data.network.dto.CandleDto
 import com.example.marketlens.data.network.dto.NewsArticleDto
 import com.example.marketlens.data.network.dto.QuoteDto
 import com.example.marketlens.data.network.dto.SearchResponseDto
+import com.example.marketlens.data.network.dto.StockMetricResponseDto
+import com.example.marketlens.data.network.dto.StockProfileDto
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -32,4 +34,13 @@ interface MarketApi {
         @Query("from")   from: String,
         @Query("to")     to: String
     ): List<NewsArticleDto>
+
+    @GET("stock/profile2")
+    suspend fun getStockProfile(@Query("symbol") symbol: String): StockProfileDto
+
+    @GET("stock/metric")
+    suspend fun getStockMetric(
+        @Query("symbol") symbol: String,
+        @Query("metric") metric: String = "all"
+    ): StockMetricResponseDto
 }

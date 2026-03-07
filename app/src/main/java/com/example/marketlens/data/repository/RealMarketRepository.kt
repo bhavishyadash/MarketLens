@@ -2,6 +2,7 @@ package com.example.marketlens.data.repository
 
 import com.example.marketlens.data.model.SearchResult
 import com.example.marketlens.data.model.StockCandle
+import com.example.marketlens.data.model.StockProfile
 import com.example.marketlens.data.model.StockQuote
 import com.example.marketlens.data.network.ApiResult
 import com.example.marketlens.data.network.MarketApi
@@ -32,12 +33,38 @@ class RealMarketRepository(private val api: MarketApi) : MarketRepository {
     override suspend fun getCandles(symbol: String, resolution: String, from: Long, to: Long): ApiResult<StockCandle> {
         return try {
             val dto = api.getCandles(symbol, resolution, from, to)
-            if (dto.status != "ok") {
-                return ApiResult.Error("No chart data available for $symbol in this time range")
-            }
+            if (dto.status != "ok") return ApiResult.Error("No chart data available for $symbol in this time range")
             ApiResult.Success(StockCandle(dto.timestamps!!, dto.closePrices!!, dto.status))
         } catch (e: Exception) {
             ApiResult.Error("Could not load chart for $symbol: ${e.message}", e)
         }
+    }
+
+    override suspend fun getStockProfile(symbol: String): ApiResult<StockProfile> {
+        return try {
+            val profileDto = api.getStockProfile(symbol)
+            val metricDto  = api.getStockMetric(symbol).metric
+            ApiResult.Success(
+                StockProfile(
+                    symbol             = symbol,
+                    name               = profileDto.name,
+                    exchange           = profileDto.exchange,
+                    industry           = profileDto.industry,
+                    marketCapFormatted = formatMarketCap(profileDto.marketCapMillions),
+                    week52High         = metricDto.week52High,
+                    week52Low          = metricDto.week52Low,
+                    peRatio            = metricDto.peRatio,
+                    beta               = metricDto.beta
+                )
+            )
+        } catch (e: Exception) {
+            ApiResult.Error("Could not load profile for $symbol: ${e.message}", e)
+        }
+    }
+
+    private fun formatMarketCap(millions: Double): String = when {
+        millions >= 1_000_000 -> "$%.2fT".format(millions / 1_000_000)
+        millions >= 1_000     -> "$%.1fB".format(millions / 1_000)
+        else                  -> "$%.1fM".format(millions)
     }
 }
