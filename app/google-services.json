@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "449510378464",
+    "project_id": "market-lens-63271",
+    "storage_bucket": "market-lens-63271.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:449510378464:android:0c4c28bc2017c748dbb985",
+        "android_client_info": {
+          "package_name": "com.example.marketlens"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAN4e8mpfvIxM_C5vD08grMejE2nwoqZzI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.marketlens" />
+                  <option name="mobileSdkAppId" value="1:449510378464:android:0c4c28bc2017c748dbb985" />
+                  <option name="projectId" value="market-lens-63271" />
+                  <option name="projectNumber" value="449510378464" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
