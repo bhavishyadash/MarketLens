@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.marketlens.ui.news.NewsCard
 import com.example.marketlens.ui.theme.PriceDown
 import com.example.marketlens.ui.theme.PriceUp
 import com.example.marketlens.viewmodel.StockDetailViewModel
@@ -17,7 +18,9 @@ import com.example.marketlens.viewmodel.Timeframe
 
 @Composable
 fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
-    val state by viewModel.state.collectAsState()
+    val state  by viewModel.state.collectAsState()
+    val candle = state.candle
+
     when {
         state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -28,8 +31,6 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
         }
         else -> {
             val changeColor = if (state.percentChange >= 0.0) PriceUp else PriceDown
-            val candle = state.candle  // local val fixes the smart cast error
-
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), Arrangement.spacedBy(14.dp)) {
 
                 // Top bar
@@ -57,25 +58,21 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
                         Text("Price Chart", style = MaterialTheme.typography.titleMedium)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Timeframe.entries.forEach { tf ->
-                                FilterChip(
-                                    selected = state.selectedTimeframe == tf,
-                                    onClick  = { viewModel.onTimeframeSelected(tf) },
-                                    label    = { Text(tf.label) }
-                                )
+                                FilterChip(selected = state.selectedTimeframe == tf,
+                                    onClick = { viewModel.onTimeframeSelected(tf) },
+                                    label   = { Text(tf.label) })
                             }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
                         when {
-                            state.isCandleLoading -> Box(Modifier.fillMaxWidth().height(160.dp), Alignment.Center) {
-                                CircularProgressIndicator(Modifier.size(32.dp))
-                            }
+                            state.isCandleLoading -> Box(Modifier.fillMaxWidth().height(160.dp), Alignment.Center) { CircularProgressIndicator(Modifier.size(32.dp)) }
                             state.candleError != null -> Box(Modifier.fillMaxWidth().height(100.dp), Alignment.Center) {
                                 Text(state.candleError!!, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                             }
                             candle != null && candle.hasData -> Box(Modifier.fillMaxWidth().height(160.dp), Alignment.Center) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text("${candle.closePrices.size} data points loaded ✓", style = MaterialTheme.typography.bodySmall, color = PriceUp)
-                                    Text("Chart renders here in Phase 3", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                                    Text("Chart renders here in Phase 4", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
                             else -> Box(Modifier.fillMaxWidth().height(100.dp), Alignment.Center) {
@@ -92,6 +89,22 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
                         StatRow("Market Cap", "—"); StatRow("P/E Ratio", "—")
                         StatRow("52W High", "—"); StatRow("52W Low", "—")
+                    }
+                }
+
+                // Stock news
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp), Arrangement.spacedBy(12.dp)) {
+                        Text("Latest News — ${state.symbol}", style = MaterialTheme.typography.titleMedium)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                        when {
+                            state.isNewsLoading -> Box(Modifier.fillMaxWidth().height(80.dp), Alignment.Center) { CircularProgressIndicator(Modifier.size(28.dp)) }
+                            state.newsError != null -> Text(state.newsError!!, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            state.news.isEmpty() -> Text("No recent news for ${state.symbol}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            else -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                state.news.take(5).forEach { NewsCard(it) }
+                            }
+                        }
                     }
                 }
 

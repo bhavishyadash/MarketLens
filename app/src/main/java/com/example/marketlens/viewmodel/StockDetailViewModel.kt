@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.marketlens.data.AppContainer
 import com.example.marketlens.data.network.ApiResult
 import com.example.marketlens.data.repository.MarketRepository
+import com.example.marketlens.data.repository.NewsRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ import java.time.Instant
 
 class StockDetailViewModel(
     savedStateHandle: SavedStateHandle,
-    private val repo: MarketRepository = AppContainer.repository
+    private val repo: MarketRepository   = AppContainer.repository,
+    private val newsRepo: NewsRepository = AppContainer.newsRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StockDetailState())
@@ -27,16 +29,10 @@ class StockDetailViewModel(
 
     private val symbol: String = savedStateHandle["symbol"] ?: "UNKNOWN"
 
-    init {
-        loadAll(symbol, Timeframe.ONE_MONTH)
-    }
+    init { loadAll(symbol, Timeframe.ONE_MONTH) }
 
     fun onTimeframeSelected(timeframe: Timeframe) {
-        _state.value = _state.value.copy(
-            selectedTimeframe = timeframe,
-            isCandleLoading   = true,
-            candleError       = null
-        )
+        _state.value = _state.value.copy(selectedTimeframe = timeframe, isCandleLoading = true, candleError = null)
         loadCandle(symbol, timeframe)
     }
 
@@ -48,8 +44,11 @@ class StockDetailViewModel(
                 val now = Instant.now().epochSecond
                 repo.getCandles(symbol, timeframe.resolution, now - (timeframe.daysBack * 86400L), now)
             }
+            val newsDeferred = async { newsRepo.getStockNews(symbol) }
+
             val quoteResult  = quoteDeferred.await()
             val candleResult = candleDeferred.await()
+            val newsResult   = newsDeferred.await()
 
             when (quoteResult) {
                 is ApiResult.Error -> _state.value = StockDetailState(
@@ -66,6 +65,9 @@ class StockDetailViewModel(
                         candleError       = (candleResult as? ApiResult.Error)?.message,
                         selectedTimeframe = timeframe,
                         isCandleLoading   = false,
+                        news              = (newsResult as? ApiResult.Success)?.data ?: emptyList(),
+                        newsError         = (newsResult as? ApiResult.Error)?.message,
+                        isNewsLoading     = false,
                         isLoading         = false
                     )
                 }
@@ -86,21 +88,12 @@ class StockDetailViewModel(
     }
 
     companion object {
-        /*
-            This Factory tells the ViewModelProvider exactly how to build
-            StockDetailViewModel when it has multiple constructor params.
-
-            createSavedStateHandle() pulls the route arguments ({symbol})
-            from Navigation's backstack and injects them into SavedStateHandle.
-
-            Without this, the default factory sees two constructor params,
-            doesn't know what to do, and crashes.
-        */
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 StockDetailViewModel(
                     savedStateHandle = createSavedStateHandle(),
-                    repo             = AppContainer.repository
+                    repo             = AppContainer.repository,
+                    newsRepo         = AppContainer.newsRepository
                 )
             }
         }

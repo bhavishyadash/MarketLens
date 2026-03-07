@@ -1,13 +1,9 @@
 package com.example.marketlens.viewmodel
 
-data class NewsState(
-    val isLoading: Boolean = false,
-    val errorMessage: String? = null,
-    val articles: List<NewsArticleUi> = emptyList()
-)
+import com.example.marketlens.data.model.NewsArticle
 
-data class NewsArticleUi(
-    val title: String,
-    val source: String,
-    val time: String
+data class NewsState(
+    val isLoading:    Boolean           = true,
+    val errorMessage: String?           = null,
+    val articles:     List<NewsArticle> = emptyList()
 )

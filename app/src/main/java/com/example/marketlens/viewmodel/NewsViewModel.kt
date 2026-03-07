@@ -1,32 +1,33 @@
 package com.example.marketlens.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.marketlens.data.AppContainer
+import com.example.marketlens.data.network.ApiResult
+import com.example.marketlens.data.repository.NewsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class NewsViewModel : ViewModel() {
+class NewsViewModel(
+    private val newsRepo: NewsRepository = AppContainer.newsRepository
+) : ViewModel() {
 
     private val _state = MutableStateFlow(NewsState(isLoading = true))
     val state: StateFlow<NewsState> = _state.asStateFlow()
 
-    init {
-        loadFakeNews()
-    }
+    init { loadNews() }
 
-    private fun loadFakeNews() {
-        val items = listOf(
-            NewsArticleUi("Tech stocks rise as markets digest new inflation data", "Reuters", "12m ago"),
-            NewsArticleUi("NVIDIA leads chipmakers higher amid AI demand", "Bloomberg", "38m ago"),
-            NewsArticleUi("Fed commentary pushes yields up; equities mixed", "WSJ", "1h ago"),
-            NewsArticleUi("Oil climbs; energy sector outperforms", "CNBC", "2h ago"),
-            NewsArticleUi("Market recap: NASDAQ ends green, volatility cools", "Financial Times", "4h ago")
-        )
+    fun refresh() { loadNews() }
 
-        _state.value = NewsState(
-            isLoading = false,
-            errorMessage = null,
-            articles = items
-        )
+    private fun loadNews() {
+        _state.value = NewsState(isLoading = true)
+        viewModelScope.launch {
+            when (val result = newsRepo.getMarketNews()) {
+                is ApiResult.Success -> _state.value = NewsState(isLoading = false, articles = result.data)
+                is ApiResult.Error   -> _state.value = NewsState(isLoading = false, errorMessage = result.message)
+            }
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.marketlens.viewmodel
 
+import com.example.marketlens.data.model.NewsArticle
 import com.example.marketlens.data.model.StockCandle
 
 enum class Timeframe(val label: String, val resolution: String, val daysBack: Int) {
@@ -18,6 +19,9 @@ data class StockDetailState(
     val selectedTimeframe: Timeframe = Timeframe.ONE_MONTH,
     val isCandleLoading: Boolean     = false,
     val candleError: String?         = null,
+    val news: List<NewsArticle>      = emptyList(),
+    val isNewsLoading: Boolean       = false,
+    val newsError: String?           = null,
     val isLoading: Boolean           = true,
     val errorMessage: String?        = null
 )
