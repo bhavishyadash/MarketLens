@@ -15,54 +15,26 @@ import com.example.marketlens.viewmodel.MarketsViewModel
 import com.example.marketlens.viewmodel.StockRowUi
 
 @Composable
-fun MarketsScreen(
-    onStockClick: (StockRowUi) -> Unit,
-    viewModel: MarketsViewModel = viewModel()
-) {
+fun MarketsScreen(onStockClick: (StockRowUi) -> Unit, viewModel: MarketsViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
-
     when {
-        state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         state.errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
         }
-        else -> Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        else -> Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), Arrangement.spacedBy(12.dp)) {
             Spacer(Modifier.height(4.dp))
             Text("Markets", style = MaterialTheme.typography.titleLarge)
-
-            // Search field
             OutlinedTextField(
-                value         = state.query,
-                onValueChange = viewModel::onQueryChange,
-                modifier      = Modifier.fillMaxWidth(),
-                placeholder   = { Text("Search symbol or name…") },
-                singleLine    = true
+                value = state.query, onValueChange = viewModel::onQueryChange,
+                modifier = Modifier.fillMaxWidth(), placeholder = { Text("Search symbol or name…") }, singleLine = true
             )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                items(state.filteredStocks, key = { it.symbol }) { stock ->
-                    // key = symbol so Compose can reuse items efficiently during search
-                    StockRow(stock = stock, onClick = { onStockClick(stock) })
-                }
-
+            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
+                items(state.filteredStocks, key = { it.symbol }) { StockRow(it) { onStockClick(it) } }
                 if (state.filteredStocks.isEmpty()) {
                     item {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                text  = "No results for \"${state.query}\"",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) {
+                            Text("No results for \"${state.query}\"", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -74,28 +46,11 @@ fun MarketsScreen(
 @Composable
 private fun StockRow(stock: StockRowUi, onClick: () -> Unit) {
     val changeColor = if (stock.isUp) PriceUp else PriceDown
-
-    Card(
-        onClick = onClick,
-        colors  = CardDefaults.cardColors(
-            // Bug fixed: was Color(0xFF1A1D23) hardcoded
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    Card(onClick = onClick, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), Arrangement.SpaceBetween, Alignment.CenterVertically) {
             Column {
                 Text(stock.symbol, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    stock.name,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(stock.name, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("${"%.2f".format(stock.price)}")
