@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.MarketLens" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+        Bug fixed: was "android:Theme.Material.Light.NoActionBar"
+        That caused a WHITE FLASH before Compose loaded because
+        the XML theme is the very first thing Android draws.
+        Now we use a dark background so the flash matches our dark UI.
+    -->
+    <style name="Theme.MarketLens" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#0D0F14</item>
+        <item name="android:statusBarColor">#0D0F14</item>
+        <item name="android:navigationBarColor">#0D0F14</item>
+    </style>
 </resources>
