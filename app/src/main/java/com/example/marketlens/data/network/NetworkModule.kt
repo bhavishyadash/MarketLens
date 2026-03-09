@@ -5,40 +5,50 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
 object NetworkModule {
 
-    private const val BASE_URL = "https://finnhub.io/api/v1/"
-
-    // Appends ?token=YOUR_KEY to every request automatically
-    private val tokenInterceptor = Interceptor { chain ->
-        val urlWithToken = chain.request().url.newBuilder()
-            .addQueryParameter("token", BuildConfig.FINNHUB_API_KEY)
-            .build()
-        chain.proceed(chain.request().newBuilder().url(urlWithToken).build())
-    }
-
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BASIC
-    }
-
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(tokenInterceptor)
-        .addInterceptor(loggingInterceptor)
-        .build()
-
     private val moshi = Moshi.Builder()
-        .add(KotlinJsonAdapterFactory())
+        .addLast(KotlinJsonAdapterFactory())
         .build()
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(okHttpClient)
+    // ── Finnhub ───────────────────────────────────────────────────────────────
+    private val finnhubClient = OkHttpClient.Builder()
+        .addInterceptor(Interceptor { chain ->
+            val original = chain.request()
+            val url = original.url.newBuilder()
+                .addQueryParameter("token", BuildConfig.FINNHUB_API_KEY)
+                .build()
+            chain.proceed(original.newBuilder().url(url).build())
+        })
+        .build()
+
+    val marketApi: MarketApi = Retrofit.Builder()
+        .baseUrl("https://finnhub.io/api/v1/")
+        .client(finnhubClient)
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
+        .create(MarketApi::class.java)
 
-    val marketApi: MarketApi = retrofit.create(MarketApi::class.java)
+    // ── Yahoo Finance ─────────────────────────────────────────────────────────
+    private val yahooClient = OkHttpClient.Builder()
+        .addInterceptor(Interceptor { chain ->
+            val request = chain.request().newBuilder()
+                .addHeader(
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                )
+                .build()
+            chain.proceed(request)
+        })
+        .build()
+
+    val yahooFinanceApi: YahooFinanceApi = Retrofit.Builder()
+        .baseUrl("https://query1.finance.yahoo.com/")
+        .client(yahooClient)
+        .addConverterFactory(MoshiConverterFactory.create(moshi))
+        .build()
+        .create(YahooFinanceApi::class.java)
 }
