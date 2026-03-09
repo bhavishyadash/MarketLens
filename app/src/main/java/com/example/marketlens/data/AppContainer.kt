@@ -7,11 +7,13 @@ import com.example.marketlens.data.repository.MarketRepository
 import com.example.marketlens.data.repository.NewsRepository
 import com.example.marketlens.data.repository.RealMarketRepository
 
-
 object AppContainer {
 
     val repository: MarketRepository by lazy {
-        RealMarketRepository(NetworkModule.marketApi)
+        RealMarketRepository(
+            api   = NetworkModule.marketApi,
+            yahoo = NetworkModule.yahooFinanceApi
+        )
     }
 
     val newsRepository: NewsRepository by lazy {

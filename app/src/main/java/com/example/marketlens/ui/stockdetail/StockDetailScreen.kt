@@ -21,6 +21,7 @@ import com.example.marketlens.ui.theme.PriceUp
 import com.example.marketlens.viewmodel.Horizon
 import com.example.marketlens.viewmodel.StockDetailViewModel
 import com.example.marketlens.viewmodel.Timeframe
+import com.example.marketlens.ui.components.StockChart
 
 @Composable
 fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
@@ -80,11 +81,14 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
                 }
 
                 // ── Chart card ────────────────────────────────────────────────
+                // ── Chart card ────────────────────────────────────────────────────────────
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), Arrangement.spacedBy(12.dp)) {
                         Text("Price Chart", style = MaterialTheme.typography.titleMedium)
+
+                        // Timeframe selector — remove 1W since intraday requires paid tier
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Timeframe.entries.forEach { tf ->
+                            listOf(Timeframe.ONE_MONTH, Timeframe.THREE_MONTHS, Timeframe.ONE_YEAR).forEach { tf ->
                                 FilterChip(
                                     selected = state.selectedTimeframe == tf,
                                     onClick  = { viewModel.onTimeframeSelected(tf) },
@@ -92,22 +96,38 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
                                 )
                             }
                         }
+
                         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+
                         when {
-                            state.isCandleLoading -> Box(Modifier.fillMaxWidth().height(160.dp), Alignment.Center) {
-                                CircularProgressIndicator(Modifier.size(32.dp))
-                            }
-                            state.candleError != null -> Box(Modifier.fillMaxWidth().height(100.dp), Alignment.Center) {
-                                Text(state.candleError!!, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                            }
-                            candle != null && candle.hasData -> Box(Modifier.fillMaxWidth().height(160.dp), Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("${candle.closePrices.size} data points loaded ✓", style = MaterialTheme.typography.bodySmall, color = PriceUp)
-                                    Text("Chart library integration — Phase 5", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                            state.isCandleLoading -> {
+                                Box(Modifier.fillMaxWidth().height(180.dp), Alignment.Center) {
+                                    CircularProgressIndicator(Modifier.size(32.dp))
                                 }
                             }
-                            else -> Box(Modifier.fillMaxWidth().height(100.dp), Alignment.Center) {
-                                Text("No chart data for this timeframe", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            state.candleError != null -> {
+                                Box(Modifier.fillMaxWidth().height(80.dp), Alignment.Center) {
+                                    Text(
+                                        text  = state.candleError!!,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                            candle != null && candle.hasData -> {
+                                // The real chart — draws using closePrices from Alpha Vantage
+                                StockChart(
+                                    prices   = candle.closePrices,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            else -> {
+                                Box(Modifier.fillMaxWidth().height(80.dp), Alignment.Center) {
+                                    Text(
+                                        text  = "No chart data for this timeframe",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
