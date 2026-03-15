@@ -3,6 +3,9 @@ package com.example.marketlens.ui.watchlist
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,9 +18,7 @@ import com.example.marketlens.viewmodel.WatchlistRowUi
 import com.example.marketlens.viewmodel.WatchlistViewModel
 
 @Composable
-fun WatchlistScreen(
-    viewModel: WatchlistViewModel = viewModel()
-) {
+fun WatchlistScreen(viewModel: WatchlistViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
 
     when {
@@ -25,7 +26,10 @@ fun WatchlistScreen(
             CircularProgressIndicator()
         }
         state.errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
+                Button(onClick = { viewModel.refresh() }) { Text("Retry") }
+            }
         }
         state.items.isEmpty() -> EmptyWatchlist()
         else -> Column(
@@ -35,15 +39,27 @@ fun WatchlistScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Spacer(Modifier.height(4.dp))
-            Text("Watchlist", style = MaterialTheme.typography.titleLarge)
+            Row(
+                Modifier.fillMaxWidth(),
+                Arrangement.SpaceBetween,
+                Alignment.CenterVertically
+            ) {
+                Text("Watchlist", style = MaterialTheme.typography.titleLarge)
+                IconButton(onClick = { viewModel.refresh() }) {
+                    Icon(Icons.Filled.Refresh, "Refresh")
+                }
+            }
 
             LazyColumn(
-                modifier = Modifier.weight(1f),
+                modifier            = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding      = PaddingValues(bottom = 16.dp)
             ) {
                 items(state.items, key = { it.symbol }) { item ->
-                    WatchlistCard(item)
+                    WatchlistCard(
+                        item     = item,
+                        onRemove = { viewModel.removeSymbol(item.symbol) }
+                    )
                 }
             }
         }
@@ -51,39 +67,44 @@ fun WatchlistScreen(
 }
 
 @Composable
-private fun WatchlistCard(item: WatchlistRowUi) {
+private fun WatchlistCard(item: WatchlistRowUi, onRemove: () -> Unit) {
     val changeColor = if (item.isUp) PriceUp else PriceDown
 
-    Card(
-        colors = CardDefaults.cardColors(
-            // Bug fixed: was Color(0xFF1A1D23) hardcoded
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
+            modifier              = Modifier.fillMaxWidth().padding(14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment     = Alignment.CenterVertically
         ) {
             Column {
                 Text(item.symbol, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text  = "Saved",
+                    text  = "Watching",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Column(horizontalAlignment = Alignment.End) {
-                Text("${"%.2f".format(item.price)}")
-                Text("${"%.2f".format(item.percentChange)}%", color = changeColor)
+            Row(
+                verticalAlignment     = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("${"%.2f".format(item.price)}")
+                    Text("${"%.2f".format(item.percentChange)}%", color = changeColor)
+                }
+                // Remove from watchlist
+                IconButton(onClick = onRemove) {
+                    Icon(
+                        imageVector        = Icons.Filled.Delete,
+                        contentDescription = "Remove ${item.symbol}",
+                        tint               = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
 }
 
-// Shown when the watchlist is empty (Phase 1: never reached; Phase 2: user has no saved stocks)
 @Composable
 private fun EmptyWatchlist() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -93,7 +114,7 @@ private fun EmptyWatchlist() {
         ) {
             Text("Your watchlist is empty", style = MaterialTheme.typography.titleMedium)
             Text(
-                text  = "Go to Markets and tap a stock to save it",
+                text  = "Open any stock and tap the bookmark icon to add it",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall
             )
