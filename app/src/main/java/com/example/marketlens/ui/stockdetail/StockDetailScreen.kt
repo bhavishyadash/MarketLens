@@ -22,6 +22,8 @@ import com.example.marketlens.viewmodel.Horizon
 import com.example.marketlens.viewmodel.StockDetailViewModel
 import com.example.marketlens.viewmodel.Timeframe
 import com.example.marketlens.ui.components.StockChart
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.BookmarkBorder
 
 @Composable
 fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
@@ -49,25 +51,42 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
 
-                // ── Top bar ───────────────────────────────────────────────────
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Go back")
-                    }
-                    Column {
-                        Text(state.symbol, style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            text  = state.name.ifBlank { state.symbol },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        state.profile?.industry?.let { industry ->
+                // ── Top bar ───────────────────────────────────────────────────────
+                Row(
+                    modifier              = Modifier.fillMaxWidth(),
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Go back")
+                        }
+                        Column {
+                            Text(state.symbol, style = MaterialTheme.typography.titleLarge)
                             Text(
-                                text  = industry,
-                                style = MaterialTheme.typography.labelSmall,
+                                text  = state.name.ifBlank { state.symbol },
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            state.profile?.industry?.let { industry ->
+                                Text(
+                                    text  = industry,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
+                    }
+                    // Bookmark / watchlist toggle
+                    IconButton(onClick = { viewModel.onToggleWatchlist() }) {
+                        Icon(
+                            imageVector = if (state.isInWatchlist)
+                                Icons.Filled.Bookmark
+                            else
+                                Icons.Filled.BookmarkBorder,
+                            contentDescription = if (state.isInWatchlist) "Remove from watchlist" else "Add to watchlist",
+                            tint = if (state.isInWatchlist) PriceUp else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
