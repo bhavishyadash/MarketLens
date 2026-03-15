@@ -9,6 +9,7 @@ import com.example.marketlens.data.model.MarketMover
 import com.example.marketlens.data.model.WatchlistItem
 import com.example.marketlens.data.network.ApiResult
 import com.example.marketlens.data.repository.MarketRepository
+import com.example.marketlens.data.repository.WatchlistRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,16 +17,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class DashboardViewModel(
-    private val repo: MarketRepository = AppContainer.repository
+    private val repo:          MarketRepository   = AppContainer.repository,
+    private val watchlistRepo: WatchlistRepository = AppContainer.watchlistRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState(isLoading = true))
     val state: StateFlow<DashboardState> = _state.asStateFlow()
 
-    // SPY = S&P 500, QQQ = NASDAQ, DIA = Dow Jones (ETF proxies — Finnhub free tier)
-    private val indexSymbols     = mapOf("SPY" to "S&P 500", "QQQ" to "NASDAQ", "DIA" to "Dow Jones")
-    private val watchlistSymbols = listOf("AAPL", "MSFT", "GOOGL")
-    private val marketsSymbols   = listOf("AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META")
+    private val indexSymbols   = mapOf("SPY" to "S&P 500", "QQQ" to "NASDAQ", "DIA" to "Dow Jones")
+    private val marketsSymbols = listOf("AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META")
 
     init { loadDashboard() }
 
@@ -34,20 +34,30 @@ class DashboardViewModel(
     private fun loadDashboard() {
         _state.value = DashboardState(isLoading = true)
         viewModelScope.launch {
-            val indexDeferreds     = indexSymbols.keys.map { it to async { repo.getQuote(it) } }
-            val watchlistDeferreds = watchlistSymbols.map { it to async { repo.getQuote(it) } }
-            val marketsDeferreds   = marketsSymbols.map { it to async { repo.getQuote(it) } }
+            // Fetch index quotes + market movers in parallel
+            val indexDeferreds   = indexSymbols.keys.map { it to async { repo.getQuote(it) } }
+            val marketsDeferreds = marketsSymbols.map { it to async { repo.getQuote(it) } }
 
+            // Fetch watchlist symbols from Firestore (real user list)
+            val watchlistSymbols = when (val r = watchlistRepo.getWatchlistSymbols()) {
+                is ApiResult.Success -> r.data
+                is ApiResult.Error   -> emptyList()
+            }
+            val watchlistDeferreds = watchlistSymbols.map { it to async { repo.getQuote(it) } }
+
+            // Await all results
             val indices = indexDeferreds.mapNotNull { (symbol, d) ->
                 (d.await() as? ApiResult.Success)?.data?.let {
                     MarketIndex(indexSymbols[symbol] ?: symbol, it.price, it.percentChange, it.percentChange >= 0)
                 }
             }
+
             val watchlistPreview = watchlistDeferreds.mapNotNull { (_, d) ->
                 (d.await() as? ApiResult.Success)?.data?.let {
                     WatchlistItem(it.symbol, it.price, it.percentChange)
                 }
             }
+
             val allQuotes = marketsDeferreds.mapNotNull { (_, d) -> (d.await() as? ApiResult.Success)?.data }
             val topGainer = allQuotes.maxByOrNull { it.percentChange }?.let { MarketMover(it.symbol, it.price, it.percentChange) }
             val topLoser  = allQuotes.minByOrNull { it.percentChange }?.let { MarketMover(it.symbol, it.price, it.percentChange) }
