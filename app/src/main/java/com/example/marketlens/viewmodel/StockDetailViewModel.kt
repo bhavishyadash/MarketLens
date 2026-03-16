@@ -9,7 +9,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.marketlens.analytics.AnalyticsEngine
 import com.example.marketlens.data.AppContainer
+import com.example.marketlens.data.model.AlertDirection
 import com.example.marketlens.data.network.ApiResult
+import com.example.marketlens.data.repository.AlertRepository
 import com.example.marketlens.data.repository.MarketRepository
 import com.example.marketlens.data.repository.NewsRepository
 import com.example.marketlens.data.repository.WatchlistRepository
@@ -24,7 +26,8 @@ class StockDetailViewModel(
     savedStateHandle:  SavedStateHandle,
     private val repo:          MarketRepository   = AppContainer.repository,
     private val newsRepo:      NewsRepository      = AppContainer.newsRepository,
-    private val watchlistRepo: WatchlistRepository = AppContainer.watchlistRepository
+    private val watchlistRepo: WatchlistRepository = AppContainer.watchlistRepository,
+    private val alertRepo:     AlertRepository     = AppContainer.alertRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StockDetailState())
@@ -34,48 +37,45 @@ class StockDetailViewModel(
 
     init { loadAll(symbol, Timeframe.ONE_MONTH) }
 
-    // ── Watchlist toggle ──────────────────────────────────────────────────────
-
     fun onToggleWatchlist() {
         viewModelScope.launch {
             val current = _state.value.isInWatchlist
-            if (current) {
-                watchlistRepo.removeSymbol(symbol)
-            } else {
-                watchlistRepo.addSymbol(symbol)
-            }
+            if (current) watchlistRepo.removeSymbol(symbol) else watchlistRepo.addSymbol(symbol)
             _state.value = _state.value.copy(isInWatchlist = !current)
         }
     }
 
-    // ── Timeframe ─────────────────────────────────────────────────────────────
+    fun onAlertPriceChanged(input: String) {
+        val filtered = input.filter { it.isDigit() || it == '.' }
+        _state.value = _state.value.copy(alertPriceInput = filtered, alertSetSuccess = false, alertError = null)
+    }
+
+    fun onSetAlert(direction: AlertDirection) {
+        val targetPrice = _state.value.alertPriceInput.toDoubleOrNull()
+        if (targetPrice == null || targetPrice <= 0) {
+            _state.value = _state.value.copy(alertError = "Please enter a valid price")
+            return
+        }
+        viewModelScope.launch {
+            when (val result = alertRepo.addAlert(symbol, targetPrice, direction)) {
+                is ApiResult.Success -> _state.value = _state.value.copy(alertSetSuccess = true, alertError = null, alertPriceInput = "")
+                is ApiResult.Error   -> _state.value = _state.value.copy(alertError = result.message)
+            }
+        }
+    }
 
     fun onTimeframeSelected(timeframe: Timeframe) {
-        _state.value = _state.value.copy(
-            selectedTimeframe = timeframe,
-            isCandleLoading   = true,
-            candleError       = null
-        )
+        _state.value = _state.value.copy(selectedTimeframe = timeframe, isCandleLoading = true, candleError = null)
         loadCandle(symbol, timeframe)
     }
 
-    // ── Simulator ─────────────────────────────────────────────────────────────
-
     fun onTargetPriceChanged(input: String) {
         val filtered = input.filter { it.isDigit() || it == '.' }
-        _state.value = _state.value.copy(
-            targetPriceInput = filtered,
-            analyticsResult  = null,
-            analyticsError   = null
-        )
+        _state.value = _state.value.copy(targetPriceInput = filtered, analyticsResult = null, analyticsError = null)
     }
 
     fun onHorizonSelected(horizon: Horizon) {
-        _state.value = _state.value.copy(
-            selectedHorizon = horizon,
-            analyticsResult = null,
-            analyticsError  = null
-        )
+        _state.value = _state.value.copy(selectedHorizon = horizon, analyticsResult = null, analyticsError = null)
     }
 
     fun onCalculate() {
@@ -91,9 +91,7 @@ class StockDetailViewModel(
             return
         }
         if (targetPrice <= currentPrice) {
-            _state.value = _state.value.copy(
-                analyticsError = "Target must be above current price (${"%.2f".format(currentPrice)})"
-            )
+            _state.value = _state.value.copy(analyticsError = "Target must be above current price (${"%.2f".format(currentPrice)})")
             return
         }
 
@@ -106,15 +104,12 @@ class StockDetailViewModel(
             val prices = when (result) {
                 is ApiResult.Success -> result.data.closePrices
                 is ApiResult.Error   -> {
-                    _state.value = _state.value.copy(
-                        isAnalyticsLoading = false,
-                        analyticsError     = "Could not load price history. Try selecting 1Y chart first."
-                    )
+                    _state.value = _state.value.copy(isAnalyticsLoading = false, analyticsError = "Could not load price history. Try selecting 1Y chart first.")
                     return@launch
                 }
             }
 
-            val horizon       = _state.value.selectedHorizon
+            val horizon = _state.value.selectedHorizon
             val analyticsResult = AnalyticsEngine.compute(
                 prices       = prices,
                 currentPrice = currentPrice,
@@ -124,21 +119,12 @@ class StockDetailViewModel(
             )
 
             _state.value = if (analyticsResult == null) {
-                _state.value.copy(
-                    isAnalyticsLoading = false,
-                    analyticsError     = "Not enough data. Tap 1Y on the chart first, then calculate."
-                )
+                _state.value.copy(isAnalyticsLoading = false, analyticsError = "Not enough data. Tap 1Y on the chart first, then calculate.")
             } else {
-                _state.value.copy(
-                    analyticsResult    = analyticsResult,
-                    isAnalyticsLoading = false,
-                    analyticsError     = null
-                )
+                _state.value.copy(analyticsResult = analyticsResult, isAnalyticsLoading = false, analyticsError = null)
             }
         }
     }
-
-    // ── Initial load ──────────────────────────────────────────────────────────
 
     private fun loadAll(symbol: String, timeframe: Timeframe) {
         _state.value = StockDetailState(isLoading = true)
@@ -152,16 +138,14 @@ class StockDetailViewModel(
             val newsDeferred      = async { newsRepo.getStockNews(symbol) }
             val watchlistDeferred = async { watchlistRepo.isInWatchlist(symbol) }
 
-            val quoteResult     = quoteDeferred.await()
-            val candleResult    = candleDeferred.await()
-            val profileResult   = profileDeferred.await()
-            val newsResult      = newsDeferred.await()
-            val inWatchlist     = watchlistDeferred.await()
+            val quoteResult   = quoteDeferred.await()
+            val candleResult  = candleDeferred.await()
+            val profileResult = profileDeferred.await()
+            val newsResult    = newsDeferred.await()
+            val inWatchlist   = watchlistDeferred.await()
 
             when (quoteResult) {
-                is ApiResult.Error -> _state.value = StockDetailState(
-                    symbol = symbol, isLoading = false, errorMessage = quoteResult.message
-                )
+                is ApiResult.Error -> _state.value = StockDetailState(symbol = symbol, isLoading = false, errorMessage = quoteResult.message)
                 is ApiResult.Success -> {
                     val q = quoteResult.data
                     _state.value = StockDetailState(
@@ -175,7 +159,6 @@ class StockDetailViewModel(
                         selectedTimeframe = timeframe,
                         isCandleLoading   = false,
                         profile           = (profileResult as? ApiResult.Success)?.data,
-                        profileError      = (profileResult as? ApiResult.Error)?.message,
                         isProfileLoading  = false,
                         news              = (newsResult as? ApiResult.Success)?.data ?: emptyList(),
                         newsError         = (newsResult as? ApiResult.Error)?.message,
@@ -206,7 +189,8 @@ class StockDetailViewModel(
                     savedStateHandle = createSavedStateHandle(),
                     repo             = AppContainer.repository,
                     newsRepo         = AppContainer.newsRepository,
-                    watchlistRepo    = AppContainer.watchlistRepository
+                    watchlistRepo    = AppContainer.watchlistRepository,
+                    alertRepo        = AppContainer.alertRepository
                 )
             }
         }

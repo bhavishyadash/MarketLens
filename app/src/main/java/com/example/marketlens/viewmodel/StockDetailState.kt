@@ -24,7 +24,7 @@ data class StockDetailState(
     val name:               String            = "",
     val price:              Double            = 0.0,
     val percentChange:      Double            = 0.0,
-    val isInWatchlist:      Boolean           = false,  // Phase 5
+    val isInWatchlist:      Boolean           = false,
     val candle:             StockCandle?      = null,
     val selectedTimeframe:  Timeframe         = Timeframe.ONE_MONTH,
     val isCandleLoading:    Boolean           = false,
@@ -37,6 +37,9 @@ data class StockDetailState(
     val analyticsResult:    AnalyticsResult?  = null,
     val isAnalyticsLoading: Boolean           = false,
     val analyticsError:     String?           = null,
+    val alertPriceInput:    String            = "",
+    val alertSetSuccess:    Boolean           = false,
+    val alertError:         String?           = null,
     val news:               List<NewsArticle> = emptyList(),
     val isNewsLoading:      Boolean           = false,
     val newsError:          String?           = null,
