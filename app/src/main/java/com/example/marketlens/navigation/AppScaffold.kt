@@ -6,8 +6,10 @@ import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,22 +25,26 @@ fun AppScaffold(navController: NavHostController, authViewModel: AuthViewModel) 
         AppRoute.Markets,
         AppRoute.News,
         AppRoute.Watchlist,
-        AppRoute.Alerts
+        AppRoute.Alerts,
+        AppRoute.Signals
     )
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute   = backStackEntry?.destination?.route
     val showBottomBar  = currentRoute in bottomNavItems.map { it.route }
+    val showTopBar     = currentRoute in (bottomNavItems.map { it.route } + AppRoute.Settings.route)
 
     Scaffold(
         topBar = {
-            if (showBottomBar) {
+            if (showTopBar) {
                 SignOutBar(
-                    userName  = authViewModel.currentUserName,
-                    onSignOut = {
+                    userName      = authViewModel.currentUserName,
+                    showSettings  = currentRoute != AppRoute.Settings.route,
+                    onSignOut     = {
                         authViewModel.signOut()
                         navController.navigate(AppRoute.Auth.route) { popUpTo(0) { inclusive = true } }
-                    }
+                    },
+                    onSettings    = { navController.navigate(AppRoute.Settings.route) }
                 )
             }
         },
@@ -72,10 +78,15 @@ fun AppScaffold(navController: NavHostController, authViewModel: AuthViewModel) 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SignOutBar(userName: String, onSignOut: () -> Unit) {
+private fun SignOutBar(userName: String, showSettings: Boolean, onSignOut: () -> Unit, onSettings: () -> Unit) {
     TopAppBar(
         title   = { Text("Hey, $userName", style = MaterialTheme.typography.bodyMedium) },
-        actions = { IconButton(onClick = onSignOut) { Icon(Icons.Filled.Logout, "Sign out") } }
+        actions = {
+            if (showSettings) {
+                IconButton(onClick = onSettings) { Icon(Icons.Filled.Settings, "Settings") }
+            }
+            IconButton(onClick = onSignOut) { Icon(Icons.Filled.Logout, "Sign out") }
+        }
     )
 }
 
@@ -85,5 +96,6 @@ private fun iconForRoute(route: String) = when (route) {
     AppRoute.News.route      -> Icons.Filled.Article
     AppRoute.Watchlist.route -> Icons.Filled.Star
     AppRoute.Alerts.route    -> Icons.Filled.Notifications
+    AppRoute.Signals.route   -> Icons.Filled.TrendingUp
     else                     -> Icons.Filled.Home
 }
