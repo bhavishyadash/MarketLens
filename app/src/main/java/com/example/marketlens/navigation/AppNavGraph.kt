@@ -12,6 +12,8 @@ import com.example.marketlens.ui.auth.AuthScreen
 import com.example.marketlens.ui.dashboard.DashboardScreen
 import com.example.marketlens.ui.markets.MarketsScreen
 import com.example.marketlens.ui.news.NewsScreen
+import com.example.marketlens.ui.settings.SettingsScreen
+import com.example.marketlens.ui.signals.SignalsScreen
 import com.example.marketlens.ui.stockdetail.StockDetailScreen
 import com.example.marketlens.ui.watchlist.WatchlistScreen
 import com.example.marketlens.viewmodel.AuthViewModel
@@ -45,6 +47,8 @@ fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) 
         composable(AppRoute.News.route)      { NewsScreen() }
         composable(AppRoute.Watchlist.route) { WatchlistScreen() }
         composable(AppRoute.Alerts.route)    { AlertsScreen() }
+        composable(AppRoute.Signals.route)   { SignalsScreen() }
+        composable(AppRoute.Settings.route)  { SettingsScreen() }
 
         composable(
             route     = AppRoute.StockDetail.route,
