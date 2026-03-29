@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.marketlens.ui.alerts.AlertsScreen
 import com.example.marketlens.ui.auth.AuthScreen
 import com.example.marketlens.ui.dashboard.DashboardScreen
 import com.example.marketlens.ui.markets.MarketsScreen
@@ -17,24 +18,11 @@ import com.example.marketlens.viewmodel.AuthViewModel
 import com.example.marketlens.viewmodel.StockDetailViewModel
 
 @Composable
-fun AppNavGraph(
-    navController: NavHostController,
-    authViewModel: AuthViewModel
-) {
-    /*
-        Start destination depends on auth state:
-          - Already signed in → go straight to Dashboard
-          - Not signed in     → show Auth screen first
-    */
-    val startDestination = if (authViewModel.isAlreadySignedIn)
-        AppRoute.Dashboard.route
-    else
-        AppRoute.Auth.route
+fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) {
+    val startDestination = if (authViewModel.isAlreadySignedIn) AppRoute.Dashboard.route else AppRoute.Auth.route
 
-    NavHost(
-        navController    = navController,
-        startDestination = startDestination
-    ) {
+    NavHost(navController = navController, startDestination = startDestination) {
+
         composable(AppRoute.Auth.route) {
             AuthScreen(
                 onAuthSuccess = {
@@ -46,35 +34,24 @@ fun AppNavGraph(
             )
         }
 
-        composable(AppRoute.Dashboard.route) {
-            DashboardScreen()
-        }
+        composable(AppRoute.Dashboard.route) { DashboardScreen() }
 
         composable(AppRoute.Markets.route) {
-            MarketsScreen(
-                onStockClick = { stock ->
-                    navController.navigate(AppRoute.StockDetail.create(stock.symbol))
-                }
-            )
+            MarketsScreen(onStockClick = { stock ->
+                navController.navigate(AppRoute.StockDetail.create(stock.symbol))
+            })
         }
 
-        composable(AppRoute.News.route) {
-            NewsScreen()
-        }
-
-        composable(AppRoute.Watchlist.route) {
-            WatchlistScreen()
-        }
+        composable(AppRoute.News.route)      { NewsScreen() }
+        composable(AppRoute.Watchlist.route) { WatchlistScreen() }
+        composable(AppRoute.Alerts.route)    { AlertsScreen() }
 
         composable(
             route     = AppRoute.StockDetail.route,
             arguments = listOf(navArgument("symbol") { type = NavType.StringType })
         ) {
             val vm: StockDetailViewModel = viewModel(factory = StockDetailViewModel.Factory)
-            StockDetailScreen(
-                viewModel = vm,
-                onBack    = { navController.popBackStack() }
-            )
+            StockDetailScreen(viewModel = vm, onBack = { navController.popBackStack() })
         }
     }
 }
