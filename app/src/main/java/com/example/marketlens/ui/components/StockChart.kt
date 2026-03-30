@@ -45,21 +45,18 @@ fun StockChart(
         modifier = modifier
             .fillMaxWidth()
             .height(180.dp)
-        // No external padding — labels drawn inside canvas
     ) {
         val width      = size.width
         val height     = size.height
 
-        // Guard — if canvas somehow has no size, do nothing
         if (width <= 0f || height <= 0f) return@Canvas
 
-        val labelAreaWidth = 48f   // pixels reserved on right for Y labels
+        val labelAreaWidth = 48f
         val chartWidth     = width - labelAreaWidth
         val paddingTop     = 12f
         val paddingBot     = 20f
         val chartH         = height - paddingTop - paddingBot
 
-        // ── Convert price to canvas coordinate ───────────────────────────────
         fun priceToOffset(index: Int, price: Double): Offset {
             val x          = (index.toFloat() / (prices.size - 1)) * chartWidth
             val normalized = (price - minPrice) / priceRange
@@ -69,7 +66,6 @@ fun StockChart(
 
         val points = prices.mapIndexed { i, price -> priceToOffset(i, price) }
 
-        // ── Filled gradient under the line ───────────────────────────────────
         val fillPath = Path().apply {
             moveTo(points.first().x, height)
             points.forEach { lineTo(it.x, it.y) }
@@ -86,7 +82,6 @@ fun StockChart(
             )
         )
 
-        // ── Price line ────────────────────────────────────────────────────────
         val linePath = Path().apply {
             moveTo(points.first().x, points.first().y)
             points.drop(1).forEach { lineTo(it.x, it.y) }
@@ -98,13 +93,10 @@ fun StockChart(
             style = Stroke(width = 2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
 
-        // ── Dot at latest price ───────────────────────────────────────────────
         val lastPoint = points.last()
         drawCircle(color = lineColor,   radius = 5f,   center = lastPoint)
         drawCircle(color = Color.White, radius = 2.5f, center = lastPoint)
 
-        // ── Y-axis labels (drawn inside canvas, right side) ───────────────────
-        // Guard: only draw if label area is actually large enough
         if (labelAreaWidth > 0f) {
             val labelX = chartWidth + 4f
             drawYLabel(textMeasurer, textStyle, "$%.0f".format(maxPrice), labelX, paddingTop)

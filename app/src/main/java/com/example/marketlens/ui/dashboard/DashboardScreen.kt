@@ -1,5 +1,10 @@
 package com.example.marketlens.ui.dashboard
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +24,8 @@ import com.example.marketlens.data.model.AlertItem
 import com.example.marketlens.data.model.MarketIndex
 import com.example.marketlens.data.model.MarketMover
 import com.example.marketlens.data.model.WatchlistItem
+import com.example.marketlens.ui.components.ErrorView
+import com.example.marketlens.ui.components.LoadingView
 import com.example.marketlens.ui.theme.PriceDown
 import com.example.marketlens.ui.theme.PriceUp
 import com.example.marketlens.viewmodel.DashboardState
@@ -27,24 +34,26 @@ import com.example.marketlens.viewmodel.DashboardViewModel
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
-    when {
-        state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        state.errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
-                Button(onClick = { viewModel.refresh() }) { Text("Retry") }
-            }
+
+    AnimatedContent(
+        targetState = state,
+        transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
+        label = "dashboard_content"
+    ) { s ->
+        when {
+            s.isLoading -> LoadingView()
+            s.errorMessage != null -> ErrorView(message = s.errorMessage, onRetry = { viewModel.refresh() })
+            else -> DashboardContent(s, onRefresh = { viewModel.refresh() })
         }
-        else -> DashboardContent(state, onRefresh = { viewModel.refresh() })
     }
 }
 
 @Composable
 private fun DashboardContent(state: DashboardState, onRefresh: () -> Unit) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+        modifier        = Modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 16.dp)
+        contentPadding  = PaddingValues(vertical = 16.dp)
     ) {
         item {
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
@@ -111,14 +120,22 @@ private fun WatchlistPreviewCard(items: List<WatchlistItem>) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), Arrangement.spacedBy(8.dp)) {
             Text("Watchlist Preview", style = MaterialTheme.typography.titleMedium)
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-            items.forEach { stock ->
-                val changeColor = if (stock.percentChange >= 0) PriceUp else PriceDown
-                Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                    Text(stock.symbol, style = MaterialTheme.typography.bodyMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("${"%.2f".format(stock.price)}")
-                        Text("${"%.2f".format(stock.percentChange)}%", color = changeColor)
+            if (items.isEmpty()) {
+                Text(
+                    "No watchlist items yet. Add stocks from the Markets tab.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                items.forEach { stock ->
+                    val changeColor = if (stock.percentChange >= 0) PriceUp else PriceDown
+                    Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
+                        Text(stock.symbol, style = MaterialTheme.typography.bodyMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("${"%.2f".format(stock.price)}")
+                            Text("${"%.2f".format(stock.percentChange)}%", color = changeColor)
+                        }
                     }
                 }
             }

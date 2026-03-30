@@ -49,7 +49,6 @@ fun AuthScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ── App branding ──────────────────────────────────────────────────
             Spacer(Modifier.height(24.dp))
 
             Text(
@@ -67,14 +66,12 @@ fun AuthScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── Form header ───────────────────────────────────────────────────
             Text(
                 text       = if (state.mode == AuthMode.LOGIN) "Welcome back" else "Create account",
                 style      = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
 
-            // ── Display name (signup only) ────────────────────────────────────
             if (state.mode == AuthMode.SIGNUP) {
                 OutlinedTextField(
                     value         = state.displayName,
@@ -86,7 +83,6 @@ fun AuthScreen(
                 )
             }
 
-            // ── Email ─────────────────────────────────────────────────────────
             OutlinedTextField(
                 value         = state.email,
                 onValueChange = viewModel::onEmailChanged,
@@ -96,7 +92,6 @@ fun AuthScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
             )
 
-            // ── Password ──────────────────────────────────────────────────────
             OutlinedTextField(
                 value         = state.password,
                 onValueChange = viewModel::onPasswordChanged,
@@ -121,7 +116,6 @@ fun AuthScreen(
                 }
             )
 
-            // ── Error message ─────────────────────────────────────────────────
             state.errorMessage?.let { error ->
                 Text(
                     text  = error,
@@ -132,7 +126,6 @@ fun AuthScreen(
                 )
             }
 
-            // ── Submit button ─────────────────────────────────────────────────
             Button(
                 onClick  = { viewModel.onSubmit() },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -152,7 +145,6 @@ fun AuthScreen(
                 }
             }
 
-            // ── Toggle login / signup ─────────────────────────────────────────
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
