@@ -31,8 +31,6 @@ class FirestoreNewsRepository(
                 .document("general")
                 .collection(ARTICLES)
 
-            // Only filter on one field — no composite index needed
-            // Sort by publishedAt in Kotlin after fetching
             val cached = collectionRef
                 .whereGreaterThan("cachedAt", System.currentTimeMillis() - CACHE_DURATION_MS)
                 .get()
@@ -41,7 +39,7 @@ class FirestoreNewsRepository(
             if (!cached.isEmpty) {
                 val articles = cached.documents
                     .mapNotNull { it.toNewsArticle() }
-                    .sortedByDescending { it.publishedAt } // sort in Kotlin
+                    .sortedByDescending { it.publishedAt }
                 return ApiResult.Success(articles)
             }
 
