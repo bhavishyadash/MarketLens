@@ -18,7 +18,10 @@ class MarketsViewModel(
     private val _state = MutableStateFlow(MarketsState(isLoading = true))
     val state: StateFlow<MarketsState> = _state.asStateFlow()
 
-    private val defaultSymbols = listOf("AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "JPM", "V", "UNH", "WMT", "XOM")
+    private val defaultSymbols = listOf(
+        "AAPL", "MSFT", "NVDA", "TSLA", "AMZN",
+        "GOOGL", "META", "JPM", "V", "UNH", "WMT", "XOM"
+    )
 
     init { loadMarkets() }
 
@@ -33,7 +36,7 @@ class MarketsViewModel(
                 .map { StockRowUi(it.symbol, it.name, it.price, it.percentChange) }
 
             if (stocks.isEmpty()) {
-                _state.value = MarketsState(isLoading = false, errorMessage = "Could not load market data. Check your connection.")
+                _state.value = MarketsState(isLoading = false, errorMessage = "Could not load market data. Pull down to retry.")
             } else {
                 _state.value = MarketsState(allStocks = stocks, filteredStocks = stocks, isLoading = false)
             }
