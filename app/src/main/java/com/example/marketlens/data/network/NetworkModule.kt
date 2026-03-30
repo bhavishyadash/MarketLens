@@ -14,7 +14,6 @@ object NetworkModule {
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
-    // ── Finnhub ───────────────────────────────────────────────────────────────
     private val finnhubClient = OkHttpClient.Builder()
         .addInterceptor(Interceptor { chain ->
             val original = chain.request()
@@ -32,7 +31,6 @@ object NetworkModule {
         .build()
         .create(MarketApi::class.java)
 
-    // ── Yahoo Finance ─────────────────────────────────────────────────────────
     private val yahooClient = OkHttpClient.Builder()
         .addInterceptor(Interceptor { chain ->
             val request = chain.request().newBuilder()

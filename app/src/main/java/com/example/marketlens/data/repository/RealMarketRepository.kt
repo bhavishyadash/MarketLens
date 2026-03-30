@@ -15,7 +15,6 @@ class RealMarketRepository(
     private val yahoo: YahooFinanceApi
 ) : MarketRepository {
 
-    // ── Quote (Finnhub + cache) ───────────────────────────────────────────────
 
     override suspend fun getQuote(symbol: String): ApiResult<StockQuote> {
         QuoteCache.get(symbol)?.let { return ApiResult.Success(it) }
@@ -28,7 +27,6 @@ class RealMarketRepository(
         }
     }
 
-    // ── Search (Finnhub) ──────────────────────────────────────────────────────
 
     override suspend fun searchSymbols(query: String): ApiResult<List<SearchResult>> {
         return retryWithBackoff {
@@ -40,7 +38,6 @@ class RealMarketRepository(
         }
     }
 
-    // ── Candles (Yahoo Finance) ───────────────────────────────────────────────
 
     override suspend fun getCandles(
         symbol: String, resolution: String, from: Long, to: Long
@@ -73,7 +70,6 @@ class RealMarketRepository(
         }
     }
 
-    // ── Profile + Key Stats (Finnhub) ─────────────────────────────────────────
 
     override suspend fun getStockProfile(symbol: String): ApiResult<StockProfile> {
         return retryWithBackoff {
