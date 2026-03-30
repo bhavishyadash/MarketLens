@@ -7,6 +7,8 @@ sealed class AppRoute(val route: String, val label: String) {
     data object News      : AppRoute("news",       "News")
     data object Watchlist : AppRoute("watchlist", "Watchlist")
     data object Alerts    : AppRoute("alerts",    "Alerts")
+    data object Signals   : AppRoute("signals",   "Signals")
+    data object Settings  : AppRoute("settings",  "Settings")
 
     data object StockDetail : AppRoute("stock/{symbol}", "") {
         fun create(symbol: String) = "stock/$symbol"

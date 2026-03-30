@@ -5,10 +5,14 @@ import com.example.marketlens.data.network.NetworkModule
 import com.example.marketlens.data.repository.AlertRepository
 import com.example.marketlens.data.repository.FirestoreAlertRepository
 import com.example.marketlens.data.repository.FirestoreNewsRepository
+import com.example.marketlens.data.repository.FirestoreSettingsRepository
+import com.example.marketlens.data.repository.FirestoreSignalRepository
 import com.example.marketlens.data.repository.FirestoreWatchlistRepository
 import com.example.marketlens.data.repository.MarketRepository
 import com.example.marketlens.data.repository.NewsRepository
 import com.example.marketlens.data.repository.RealMarketRepository
+import com.example.marketlens.data.repository.SettingsRepository
+import com.example.marketlens.data.repository.SignalRepository
 import com.example.marketlens.data.repository.WatchlistRepository
 
 object AppContainer {
@@ -27,5 +31,13 @@ object AppContainer {
 
     val alertRepository: AlertRepository by lazy {
         FirestoreAlertRepository(db = FirebaseModule.firestore)
+    }
+
+    val signalRepository: SignalRepository by lazy {
+        FirestoreSignalRepository(db = FirebaseModule.firestore)
+    }
+
+    val settingsRepository: SettingsRepository by lazy {
+        FirestoreSettingsRepository(db = FirebaseModule.firestore)
     }
 }
