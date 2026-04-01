@@ -31,7 +31,6 @@ The app is built as a portfolio-grade Android project with a strong emphasis on 
 
 ### Stock Detail & Analytics
 - Interactive stock charts with **4 supported timeframes**:
-  - **1W**
   - **1M**
   - **3M**
   - **1Y**
