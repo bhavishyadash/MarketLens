@@ -281,7 +281,7 @@ private fun AnalyticsResultCard(result: AnalyticsResult) {
             }
         }
         Text(
-            text      = "Based on ${result.dataPointsUsed} trading days of history. Past patterns do not guarantee future results. This is educational only.",
+            text      = "Based on ${result.dataPointsUsed} trading days of history. Past patterns do not guarantee future results.",
             style     = MaterialTheme.typography.labelSmall,
             color     = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

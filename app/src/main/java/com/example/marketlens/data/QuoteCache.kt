@@ -4,7 +4,7 @@ import com.example.marketlens.data.model.StockQuote
 
 object QuoteCache {
 
-    private const val TTL_MS = 60_000L // 1 minute
+    private const val TTL_MS = 60_000L
 
     private data class CachedQuote(val quote: StockQuote, val fetchedAt: Long)
 

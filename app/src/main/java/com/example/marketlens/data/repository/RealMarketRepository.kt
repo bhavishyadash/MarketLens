@@ -91,19 +91,12 @@ class RealMarketRepository(
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private fun formatMarketCap(millions: Double): String = when {
         millions >= 1_000_000 -> "$%.2fT".format(millions / 1_000_000)
         millions >= 1_000     -> "$%.1fB".format(millions / 1_000)
         else                  -> "$%.1fM".format(millions)
     }
 
-    /*
-        Retry up to 2 times with exponential backoff.
-        Only retries on network exceptions, not on API errors like 403.
-        Delays: 500ms, 1000ms.
-    */
     private suspend fun <T> retryWithBackoff(block: suspend () -> ApiResult<T>): ApiResult<T> {
         var lastResult: ApiResult<T> = ApiResult.Error("Unknown error")
         val delays = listOf(500L, 1000L)

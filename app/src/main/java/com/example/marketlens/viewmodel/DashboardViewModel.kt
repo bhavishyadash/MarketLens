@@ -23,7 +23,6 @@ class DashboardViewModel(
     private val _state = MutableStateFlow(DashboardState(isLoading = true))
     val state: StateFlow<DashboardState> = _state.asStateFlow()
 
-    // Reduced from 7 to 4 symbols — fewer calls, same insight
     private val indexSymbols   = mapOf("SPY" to "S&P 500", "QQQ" to "NASDAQ", "DIA" to "Dow Jones")
     private val moverSymbols   = listOf("AAPL", "NVDA", "TSLA", "MSFT")
 
@@ -34,33 +33,26 @@ class DashboardViewModel(
     private fun loadDashboard() {
         _state.value = DashboardState(isLoading = true)
         viewModelScope.launch {
-
-
             val indexDeferreds = indexSymbols.keys.map { it to async { repo.getQuote(it) } }
             val moverDeferreds = moverSymbols.map { async { repo.getQuote(it) } }
 
-
             val watchlistSymbols = when (val r = watchlistRepo.getWatchlistSymbols()) {
-                is ApiResult.Success -> r.data.take(5) // capped at 5 to avoid too many calls
+                is ApiResult.Success -> r.data.take(5) 
                 is ApiResult.Error   -> emptyList()
             }
 
-            // Step 3: fetch watchlist prices in parallel (only if user has items)
             val watchlistDeferreds = watchlistSymbols.map { it to async { repo.getQuote(it) } }
 
-            // Await indices
             val indices = indexDeferreds.mapNotNull { (symbol, d) ->
                 (d.await() as? ApiResult.Success)?.data?.let {
                     MarketIndex(indexSymbols[symbol] ?: symbol, it.price, it.percentChange, it.percentChange >= 0)
                 }
             }
 
-            // Await movers
             val allQuotes    = moverDeferreds.mapNotNull { (it.await() as? ApiResult.Success)?.data }
             val topGainer    = allQuotes.maxByOrNull { it.percentChange }?.let { MarketMover(it.symbol, it.price, it.percentChange) }
             val topLoser     = allQuotes.minByOrNull { it.percentChange }?.let { MarketMover(it.symbol, it.price, it.percentChange) }
 
-            // Await watchlist
             val watchlistPreview = watchlistDeferreds.mapNotNull { (_, d) ->
                 (d.await() as? ApiResult.Success)?.data?.let {
                     WatchlistItem(it.symbol, it.price, it.percentChange)
