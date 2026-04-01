@@ -90,7 +90,6 @@ class AuthViewModel : ViewModel() {
 
     private suspend fun signUp(email: String, password: String, displayName: String) {
         val result = auth.createUserWithEmailAndPassword(email, password).await()
-        // Save display name to Firebase user profile
         result.user?.updateProfile(
             UserProfileChangeRequest.Builder()
                 .setDisplayName(displayName)
@@ -102,7 +101,6 @@ class AuthViewModel : ViewModel() {
 
     fun signOut() {
         auth.signOut()
-        // Reset state so auth screen starts fresh
         _state.value = AuthState()
     }
 }

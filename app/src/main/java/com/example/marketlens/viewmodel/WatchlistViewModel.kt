@@ -27,7 +27,6 @@ class WatchlistViewModel(
     fun removeSymbol(symbol: String) {
         viewModelScope.launch {
             watchlistRepo.removeSymbol(symbol)
-            // Refresh list after removal
             loadWatchlist()
         }
     }
@@ -35,7 +34,6 @@ class WatchlistViewModel(
     private fun loadWatchlist() {
         _state.value = _state.value.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            // Step 1: get list of symbols from Firestore
             val symbolsResult = watchlistRepo.getWatchlistSymbols()
             val symbols = when (symbolsResult) {
                 is ApiResult.Success -> symbolsResult.data
@@ -53,7 +51,6 @@ class WatchlistViewModel(
                 return@launch
             }
 
-            // Step 2: fetch live prices for each symbol in parallel
             val items = symbols
                 .map { symbol -> async { repo.getQuote(symbol) } }
                 .mapNotNull { (it.await() as? ApiResult.Success)?.data }
