@@ -91,37 +91,54 @@ class StockDetailViewModel(
             return
         }
         if (targetPrice <= currentPrice) {
-            _state.value = _state.value.copy(analyticsError = "Target must be above current price (${"%.2f".format(currentPrice)})")
+            _state.value = _state.value.copy(
+                analyticsError = "Target must be above current price (${"%.2f".format(currentPrice)})"
+            )
             return
         }
 
         _state.value = _state.value.copy(isAnalyticsLoading = true, analyticsError = null)
 
         viewModelScope.launch {
-            val now    = Instant.now().epochSecond
-            val result = repo.getCandles(symbol, "D", now - (365 * 86400L), now)
 
-            val prices = when (result) {
-                is ApiResult.Success -> result.data.closePrices
+            val now         = Instant.now().epochSecond
+            val twoYearsAgo = now - (2 * 365 * 86400L)
+            val candleResult = repo.getCandles(symbol, "W", twoYearsAgo, now)
+
+            val prices = when (candleResult) {
+                is ApiResult.Success -> candleResult.data.closePrices
                 is ApiResult.Error   -> {
-                    _state.value = _state.value.copy(isAnalyticsLoading = false, analyticsError = "Could not load price history. Try selecting 1Y chart first.")
+                    _state.value = _state.value.copy(
+                        isAnalyticsLoading = false,
+                        analyticsError     = "Could not load price history"
+                    )
                     return@launch
                 }
             }
 
-            val horizon = _state.value.selectedHorizon
-            val analyticsResult = AnalyticsEngine.compute(
+
+            val horizon      = _state.value.selectedHorizon
+            val horizonWeeks = (horizon.days / 7).coerceAtLeast(4)
+
+            val result = AnalyticsEngine.compute(
                 prices       = prices,
                 currentPrice = currentPrice,
                 targetPrice  = targetPrice,
-                horizonDays  = horizon.days,
+                horizonDays  = horizonWeeks,
                 symbol       = symbol
             )
 
-            _state.value = if (analyticsResult == null) {
-                _state.value.copy(isAnalyticsLoading = false, analyticsError = "Not enough data. Tap 1Y on the chart first, then calculate.")
+            _state.value = if (result == null) {
+                _state.value.copy(
+                    isAnalyticsLoading = false,
+                    analyticsError     = "Not enough historical data for this horizon"
+                )
             } else {
-                _state.value.copy(analyticsResult = analyticsResult, isAnalyticsLoading = false, analyticsError = null)
+                _state.value.copy(
+                    analyticsResult    = result,
+                    isAnalyticsLoading = false,
+                    analyticsError     = null
+                )
             }
         }
     }

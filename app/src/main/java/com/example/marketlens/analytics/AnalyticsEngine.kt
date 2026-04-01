@@ -2,7 +2,6 @@ package com.example.marketlens.analytics
 
 import com.example.marketlens.data.model.AnalyticsResult
 
-
 object AnalyticsEngine {
 
     fun compute(
@@ -15,6 +14,8 @@ object AnalyticsEngine {
 
         if (prices.size < horizonDays + 10) return null
         if (targetPrice <= 0 || currentPrice <= 0) return null
+
+        if (targetPrice <= currentPrice) return null
 
         val gainNeededPct          = ((targetPrice - currentPrice) / currentPrice) * 100.0
         val scaledTargetMultiplier = targetPrice / currentPrice
