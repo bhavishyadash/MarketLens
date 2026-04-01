@@ -75,7 +75,6 @@ class FirestoreSignalRepository(
             val collection = seenCollection() ?: return
             collection.document(articleId.toString()).set(mapOf("articleId" to articleId)).await()
         } catch (e: Exception) {
-            // Non-critical — silently fail
         }
     }
 

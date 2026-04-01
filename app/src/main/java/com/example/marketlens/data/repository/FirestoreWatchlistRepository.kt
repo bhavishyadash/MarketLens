@@ -34,7 +34,6 @@ class FirestoreWatchlistRepository(
             val collection = watchlistCollection()
                 ?: return ApiResult.Error("Not signed in")
 
-            // Document ID = symbol so we can query/delete by symbol directly
             collection.document(symbol).set(
                 mapOf(
                     "symbol"  to symbol,

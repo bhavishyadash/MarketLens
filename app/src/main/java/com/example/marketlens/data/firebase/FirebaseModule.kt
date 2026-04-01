@@ -8,7 +8,7 @@ object FirebaseModule {
     val firestore: FirebaseFirestore by lazy {
         FirebaseFirestore.getInstance().apply {
             firestoreSettings = FirebaseFirestoreSettings.Builder()
-                .setPersistenceEnabled(true) // offline cache
+                .setPersistenceEnabled(true)
                 .build()
         }
     }
