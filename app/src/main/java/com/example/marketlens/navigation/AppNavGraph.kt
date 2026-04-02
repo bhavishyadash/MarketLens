@@ -16,8 +16,8 @@ import com.example.marketlens.ui.auth.AuthScreen
 import com.example.marketlens.ui.dashboard.DashboardScreen
 import com.example.marketlens.ui.markets.MarketsScreen
 import com.example.marketlens.ui.news.NewsScreen
+import com.example.marketlens.ui.portfolio.PortfolioScreen
 import com.example.marketlens.ui.settings.SettingsScreen
-import com.example.marketlens.ui.signals.SignalsScreen
 import com.example.marketlens.ui.stockdetail.StockDetailScreen
 import com.example.marketlens.ui.watchlist.WatchlistScreen
 import com.example.marketlens.viewmodel.AuthViewModel
@@ -58,25 +58,17 @@ fun AppNavGraph(navController: NavHostController, authViewModel: AuthViewModel) 
         }
         composable(AppRoute.News.route)      { NewsScreen() }
         composable(AppRoute.Watchlist.route) { WatchlistScreen() }
+        composable(AppRoute.Portfolio.route) { PortfolioScreen() }
         composable(AppRoute.Alerts.route)    { AlertsScreen() }
-        composable(AppRoute.Signals.route)   { SignalsScreen() }
         composable(AppRoute.Settings.route)  { SettingsScreen() }
 
         composable(
             route     = AppRoute.StockDetail.route,
             arguments = listOf(navArgument("symbol") { type = NavType.StringType }),
-            enterTransition = {
-                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(NAV_DURATION))
-            },
-            exitTransition = {
-                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(NAV_DURATION))
-            },
-            popEnterTransition = {
-                slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(NAV_DURATION))
-            },
-            popExitTransition = {
-                slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(NAV_DURATION))
-            }
+            enterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(NAV_DURATION)) },
+            exitTransition  = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Start, tween(NAV_DURATION)) },
+            popEnterTransition = { slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(NAV_DURATION)) },
+            popExitTransition  = { slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, tween(NAV_DURATION)) }
         ) {
             val vm: StockDetailViewModel = viewModel(factory = StockDetailViewModel.Factory)
             StockDetailScreen(viewModel = vm, onBack = { navController.popBackStack() })
