@@ -4,20 +4,22 @@ import com.example.marketlens.data.model.PortfolioHolding
 import com.example.marketlens.data.model.PortfolioResult
 
 data class PortfolioState(
-    val isLoading:        Boolean            = false,
-    val isSaving:         Boolean            = false,
-    val isSimulating:     Boolean            = false,
-    val errorMessage:     String?            = null,
-    val holdings:         List<PortfolioHolding> = emptyList(),
-    val result:           PortfolioResult?   = null,
-    val simulationError:  String?            = null,
-    val selectedHorizon:  PortfolioHorizon   = PortfolioHorizon.SIX_MONTHS,
-    val targetGainPct:    String             = "20",
-    val formSymbol:       String             = "",
-    val formShares:       String             = "",
-    val formPurchasePrice: String            = "",
-    val formError:        String?            = null,
-    val showForm:         Boolean            = false
+    val isLoading:       Boolean              = false,
+    val isSaving:        Boolean              = false,
+    val isSimulating:    Boolean              = false,
+    val errorMessage:    String?              = null,
+    val holdings:        List<PortfolioHolding> = emptyList(),
+    val result:          PortfolioResult?     = null,
+    val simulationError: String?              = null,
+    val selectedHorizon: PortfolioHorizon     = PortfolioHorizon.SIX_MONTHS,
+    // Watchlist dropdown
+    val watchlistSymbols: List<String>        = emptyList(),
+    val formSymbol:       String              = "",
+    val formShares:       String              = "",
+    val formPurchasePrice: String             = "",
+    val formError:        String?             = null,
+    val showForm:         Boolean             = false,
+    val isDropdownExpanded: Boolean           = false
 )
 
 enum class PortfolioHorizon(val label: String, val weeks: Int) {

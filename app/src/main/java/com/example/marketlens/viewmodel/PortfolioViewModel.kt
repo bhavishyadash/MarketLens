@@ -11,6 +11,7 @@ import com.example.marketlens.data.model.PortfolioResult
 import com.example.marketlens.data.network.ApiResult
 import com.example.marketlens.data.repository.MarketRepository
 import com.example.marketlens.data.repository.PortfolioRepository
+import com.example.marketlens.data.repository.WatchlistRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,24 +20,54 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 
 class PortfolioViewModel(
-    private val portfolioRepo: PortfolioRepository = AppContainer.portfolioRepository,
-    private val marketRepo:    MarketRepository     = AppContainer.repository
+    private val portfolioRepo: PortfolioRepository  = AppContainer.portfolioRepository,
+    private val marketRepo:    MarketRepository      = AppContainer.repository,
+    private val watchlistRepo: WatchlistRepository   = AppContainer.watchlistRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PortfolioState(isLoading = true))
     val state: StateFlow<PortfolioState> = _state.asStateFlow()
 
-    init { loadHoldings() }
+    init { loadAll() }
 
-    fun onShowForm()  { _state.value = _state.value.copy(showForm = true, formError = null) }
-    fun onHideForm()  { _state.value = _state.value.copy(showForm = false, formSymbol = "", formShares = "", formPurchasePrice = "", formError = null) }
+    // ── Dropdown ──────────────────────────────────────────────────────────────
 
-    fun onFormSymbolChanged(v: String)        { _state.value = _state.value.copy(formSymbol = v.uppercase().trim(), formError = null) }
-    fun onFormSharesChanged(v: String)        { _state.value = _state.value.copy(formShares = v.filter { it.isDigit() || it == '.' }, formError = null) }
-    fun onFormPurchasePriceChanged(v: String) { _state.value = _state.value.copy(formPurchasePrice = v.filter { it.isDigit() || it == '.' }, formError = null) }
+    fun onDropdownExpand()   { _state.value = _state.value.copy(isDropdownExpanded = true) }
+    fun onDropdownDismiss()  { _state.value = _state.value.copy(isDropdownExpanded = false) }
 
-    fun onTargetGainChanged(v: String)  { _state.value = _state.value.copy(targetGainPct = v.filter { it.isDigit() || it == '.' }, simulationError = null) }
-    fun onHorizonSelected(h: PortfolioHorizon) { _state.value = _state.value.copy(selectedHorizon = h, simulationError = null) }
+    fun onSymbolSelected(symbol: String) {
+        _state.value = _state.value.copy(
+            formSymbol          = symbol,
+            isDropdownExpanded  = false,
+            formError           = null
+        )
+    }
+
+    // ── Form ──────────────────────────────────────────────────────────────────
+
+    fun onShowForm()  {
+        _state.value = _state.value.copy(
+            showForm       = true,
+            formSymbol     = "",
+            formShares     = "",
+            formPurchasePrice = "",
+            formError      = null
+        )
+    }
+    fun onHideForm()  { _state.value = _state.value.copy(showForm = false, formError = null) }
+
+    fun onFormSharesChanged(v: String) {
+        _state.value = _state.value.copy(formShares = v.filter { it.isDigit() || it == '.' }, formError = null)
+    }
+    fun onFormPurchasePriceChanged(v: String) {
+        _state.value = _state.value.copy(formPurchasePrice = v.filter { it.isDigit() || it == '.' }, formError = null)
+    }
+
+    fun onHorizonSelected(h: PortfolioHorizon) {
+        _state.value = _state.value.copy(selectedHorizon = h, simulationError = null, result = _state.value.result?.copy(simulation = null))
+    }
+
+    // ── Add holding ───────────────────────────────────────────────────────────
 
     fun onAddHolding() {
         val symbol        = _state.value.formSymbol
@@ -44,7 +75,7 @@ class PortfolioViewModel(
         val purchasePrice = _state.value.formPurchasePrice.toDoubleOrNull()
 
         if (symbol.isBlank()) {
-            _state.value = _state.value.copy(formError = "Enter a stock symbol")
+            _state.value = _state.value.copy(formError = "Select a stock from your watchlist")
             return
         }
         if (shares == null || shares <= 0) {
@@ -60,32 +91,36 @@ class PortfolioViewModel(
         viewModelScope.launch {
             val holding = PortfolioHolding(symbol, shares, purchasePrice)
             when (portfolioRepo.saveHolding(holding)) {
-                is ApiResult.Success -> {
-                    onHideForm()
-                    loadHoldings()
-                }
-                is ApiResult.Error -> _state.value = _state.value.copy(isSaving = false, formError = "Could not save. Try again.")
+                is ApiResult.Success -> { onHideForm(); loadAll() }
+                is ApiResult.Error   -> _state.value = _state.value.copy(isSaving = false, formError = "Could not save. Try again.")
             }
         }
     }
 
+    // ── Delete ────────────────────────────────────────────────────────────────
+
     fun onDeleteHolding(symbol: String) {
         viewModelScope.launch {
             portfolioRepo.deleteHolding(symbol)
-            loadHoldings()
+            loadAll()
         }
     }
 
+    // ── Simulate ──────────────────────────────────────────────────────────────
+
+    /*
+        Auto-target approach:
+        Instead of asking the user to type a gain %, we compute the portfolio's
+        actual 2-year historical performance from the blended price series.
+        The simulation then asks: given your horizon, what's the probability
+        this portfolio achieves that same historical rate of gain?
+
+        This is more meaningful than an arbitrary user-typed number.
+    */
     fun onSimulate() {
         val holdings = _state.value.holdings
         if (holdings.isEmpty()) {
             _state.value = _state.value.copy(simulationError = "Add at least one holding first")
-            return
-        }
-
-        val targetGainPct = _state.value.targetGainPct.toDoubleOrNull()
-        if (targetGainPct == null || targetGainPct <= 0) {
-            _state.value = _state.value.copy(simulationError = "Enter a valid target gain percentage")
             return
         }
 
@@ -95,61 +130,65 @@ class PortfolioViewModel(
             val now         = Instant.now().epochSecond
             val twoYearsAgo = now - (2 * 365 * 86400L)
 
-            val priceSeriesDeferred = holdings.associate { holding ->
-                holding.symbol to async {
-                    marketRepo.getCandles(holding.symbol, "W", twoYearsAgo, now)
+            // Fetch price history + quotes in parallel for all holdings
+            val priceDeferred = holdings.associate { h ->
+                h.symbol to async {
+                    try { marketRepo.getCandles(h.symbol, "W", twoYearsAgo, now) }
+                    catch (e: Exception) { ApiResult.Error("Failed: ${e.message}") }
+                }
+            }
+            val quoteDeferred = holdings.associate { h ->
+                h.symbol to async {
+                    try { marketRepo.getQuote(h.symbol) }
+                    catch (e: Exception) { ApiResult.Error("Failed: ${e.message}") }
                 }
             }
 
-            val quoteDeferred = holdings.associate { holding ->
-                holding.symbol to async { marketRepo.getQuote(holding.symbol) }
-            }
-
-            val priceSeries = mutableMapOf<String, List<Double>>()
-            for ((symbol, deferred) in priceSeriesDeferred) {
-                val result = deferred.await()
-                if (result is ApiResult.Success && result.data.closePrices.isNotEmpty()) {
-                    priceSeries[symbol] = result.data.closePrices
-                }
-            }
-
+            val priceSeries   = mutableMapOf<String, List<Double>>()
             val currentPrices = mutableMapOf<String, Double>()
-            for ((symbol, deferred) in quoteDeferred) {
-                val result = deferred.await()
-                if (result is ApiResult.Success) {
-                    currentPrices[symbol] = result.data.price
+
+            for ((symbol, d) in priceDeferred) {
+                val r = d.await()
+                if (r is ApiResult.Success && r.data.closePrices.size >= 10) {
+                    priceSeries[symbol] = r.data.closePrices
                 }
+            }
+            for ((symbol, d) in quoteDeferred) {
+                val r = d.await()
+                if (r is ApiResult.Success) currentPrices[symbol] = r.data.price
             }
 
             if (priceSeries.isEmpty()) {
                 _state.value = _state.value.copy(
                     isSimulating    = false,
-                    simulationError = "Could not load price history. Check your connection."
+                    simulationError = "Could not load price history. Check your connection and try again."
                 )
                 return@launch
             }
 
             val sharesMap = holdings.associate { it.symbol to it.shares }
-            val holdingSnapshots = holdings.mapNotNull { holding ->
-                val currentPrice = currentPrices[holding.symbol] ?: return@mapNotNull null
+
+            // Build holding snapshots
+            val snapshots = holdings.mapNotNull { h ->
+                val price = currentPrices[h.symbol] ?: return@mapNotNull null
                 HoldingSnapshot(
-                    symbol        = holding.symbol,
-                    shares        = holding.shares,
-                    currentPrice  = currentPrice,
-                    purchasePrice = holding.purchasePrice,
-                    currentValue  = holding.shares * currentPrice,
-                    gainLoss      = (currentPrice - holding.purchasePrice) * holding.shares,
-                    gainLossPct   = if (holding.purchasePrice > 0)
-                        ((currentPrice - holding.purchasePrice) / holding.purchasePrice) * 100.0
-                    else 0.0
+                    symbol        = h.symbol,
+                    shares        = h.shares,
+                    currentPrice  = price,
+                    purchasePrice = h.purchasePrice,
+                    currentValue  = h.shares * price,
+                    gainLoss      = (price - h.purchasePrice) * h.shares,
+                    gainLossPct   = if (h.purchasePrice > 0)
+                        ((price - h.purchasePrice) / h.purchasePrice) * 100.0 else 0.0
                 )
             }
 
-            val currentPortfolioValue = holdingSnapshots.sumOf { it.currentValue }
+            val currentPortfolioValue = snapshots.sumOf { it.currentValue }
             val totalCostBasis        = holdings.sumOf { it.shares * it.purchasePrice }
             val totalGainLoss         = currentPortfolioValue - totalCostBasis
             val totalGainLossPct      = if (totalCostBasis > 0) (totalGainLoss / totalCostBasis) * 100.0 else 0.0
 
+            // Blend all price series into one portfolio value series
             val blended = PortfolioBlender.blend(priceSeries, sharesMap)
 
             if (blended.size < 20) {
@@ -160,11 +199,31 @@ class PortfolioViewModel(
                 return@launch
             }
 
+            /*
+                Auto-compute target from 2-year historical gain.
+                If the blended portfolio grew 40% over 2 years historically,
+                we ask: what's the probability it gains 40% in [horizon]?
+
+                We scale by horizon ratio so targets are proportional:
+                  2Y gain = 40%, 6M horizon ratio = 6/24 = 0.25
+                  6M target = 40% * 0.25 = 10%
+            */
+            val twoYearGainPct = ((blended.last() / blended.first()) - 1.0) * 100.0
+            val horizon        = _state.value.selectedHorizon
+            val horizonRatio   = horizon.weeks.toDouble() / 104.0 // 104 weeks = 2 years
+            val scaledTargetPct = (twoYearGainPct * horizonRatio).coerceAtLeast(1.0)
+
             val blendedCurrentValue = blended.last()
+            val targetValue = blendedCurrentValue * (1.0 + scaledTargetPct / 100.0)
 
-            val targetValue = blendedCurrentValue * (1 + targetGainPct / 100.0)
-
-            val horizon = _state.value.selectedHorizon
+            // Guard: target must be above current for AnalyticsEngine
+            if (targetValue <= blendedCurrentValue) {
+                _state.value = _state.value.copy(
+                    isSimulating    = false,
+                    simulationError = "Historical data shows negative 2-year trend. Simulation not available."
+                )
+                return@launch
+            }
 
             val simulation = AnalyticsEngine.compute(
                 prices       = blended,
@@ -175,33 +234,50 @@ class PortfolioViewModel(
             )
 
             _state.value = _state.value.copy(
-                isSimulating = false,
-                result       = PortfolioResult(
-                    currentValue     = currentPortfolioValue,
-                    totalGainLoss    = totalGainLoss,
-                    totalGainLossPct = totalGainLossPct,
-                    holdings         = holdingSnapshots,
-                    simulation       = simulation
-                ),
-                simulationError = if (simulation == null) "Not enough historical overlap across your holdings." else null
+                isSimulating    = false,
+                simulationError = if (simulation == null) "Not enough historical overlap. Try adding stocks with longer history." else null,
+                result          = PortfolioResult(
+                    currentValue      = currentPortfolioValue,
+                    totalGainLoss     = totalGainLoss,
+                    totalGainLossPct  = totalGainLossPct,
+                    holdings          = snapshots,
+                    simulation        = simulation,
+                    historicalGainPct = twoYearGainPct,
+                    scaledTargetPct   = scaledTargetPct
+                )
             )
         }
     }
 
-    private fun loadHoldings() {
+    // ── Load ──────────────────────────────────────────────────────────────────
+
+    private fun loadAll() {
         _state.value = _state.value.copy(isLoading = true, errorMessage = null)
         viewModelScope.launch {
-            when (val result = portfolioRepo.getHoldings()) {
-                is ApiResult.Success -> _state.value = _state.value.copy(
-                    isLoading = false,
-                    holdings  = result.data,
-                    result    = null
-                )
-                is ApiResult.Error -> _state.value = _state.value.copy(
-                    isLoading    = false,
-                    errorMessage = result.message
-                )
+            // Load holdings and watchlist symbols in parallel
+            val holdingsDeferred  = async { portfolioRepo.getHoldings() }
+            val watchlistDeferred = async { watchlistRepo.getWatchlistSymbols() }
+
+            val holdings = when (val r = holdingsDeferred.await()) {
+                is ApiResult.Success -> r.data
+                is ApiResult.Error   -> {
+                    _state.value = _state.value.copy(isLoading = false, errorMessage = r.message)
+                    return@launch
+                }
             }
+
+            val watchlist = when (val r = watchlistDeferred.await()) {
+                is ApiResult.Success -> r.data
+                is ApiResult.Error   -> emptyList()
+            }
+
+            _state.value = _state.value.copy(
+                isLoading        = false,
+                holdings         = holdings,
+                watchlistSymbols = watchlist,
+                result           = null,
+                isSaving         = false
+            )
         }
     }
 }
