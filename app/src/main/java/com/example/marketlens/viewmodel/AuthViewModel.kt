@@ -2,6 +2,7 @@ package com.example.marketlens.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.marketlens.data.firebase.FirebaseModule
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,6 +10,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 
 class AuthViewModel : ViewModel() {
 
@@ -85,6 +89,9 @@ class AuthViewModel : ViewModel() {
 
     private suspend fun signIn(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password).await()
+        Firebase.analytics.logEvent("user_login") {
+            param("method", "email")
+        }
         _state.value = _state.value.copy(isLoading = false, isSuccess = true)
     }
 
@@ -101,14 +108,20 @@ class AuthViewModel : ViewModel() {
             FirebaseModule.firestore
                 .collection("users")
                 .document(uid)
-                .set(mapOf(
-                    "uid"         to uid,
-                    "displayName" to displayName,
-                    "email"       to email,
-                    "createdAt"   to System.currentTimeMillis(),
-                    "platform"    to "android"
-                ))
+                .set(
+                    mapOf(
+                        "uid" to uid,
+                        "displayName" to displayName,
+                        "email" to email,
+                        "createdAt" to System.currentTimeMillis(),
+                        "platform" to "android"
+                    )
+                )
                 .await()
+            Firebase.analytics.logEvent("user_signup") {
+                param("method", "email")
+            }
+
         }
 
         _state.value = _state.value.copy(isLoading = false, isSuccess = true)

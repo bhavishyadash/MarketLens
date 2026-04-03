@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 
 class NewsViewModel(
     private val newsRepo: NewsRepository = AppContainer.newsRepository
@@ -27,6 +30,9 @@ class NewsViewModel(
             when (val result = newsRepo.getMarketNews()) {
                 is ApiResult.Success -> _state.value = NewsState(isLoading = false, articles = result.data)
                 is ApiResult.Error   -> _state.value = NewsState(isLoading = false, errorMessage = result.message)
+            }
+            Firebase.analytics.logEvent("news_viewed") {
+                param("article_count", result.data.size.toLong())
             }
         }
     }

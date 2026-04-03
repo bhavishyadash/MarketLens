@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.Instant
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 
 class StockDetailViewModel(
     savedStateHandle:  SavedStateHandle,
@@ -37,11 +40,18 @@ class StockDetailViewModel(
 
     init { loadAll(symbol, Timeframe.ONE_MONTH) }
 
+
+
     fun onToggleWatchlist() {
         viewModelScope.launch {
             val current = _state.value.isInWatchlist
             if (current) watchlistRepo.removeSymbol(symbol) else watchlistRepo.addSymbol(symbol)
             _state.value = _state.value.copy(isInWatchlist = !current)
+        }
+        if (current) {
+            Firebase.analytics.logEvent("watchlist_remove") { param("symbol", symbol) }
+        } else {
+            Firebase.analytics.logEvent("watchlist_add") { param("symbol", symbol) }
         }
     }
 
@@ -60,6 +70,10 @@ class StockDetailViewModel(
             when (val result = alertRepo.addAlert(symbol, targetPrice, direction)) {
                 is ApiResult.Success -> _state.value = _state.value.copy(alertSetSuccess = true, alertError = null, alertPriceInput = "")
                 is ApiResult.Error   -> _state.value = _state.value.copy(alertError = result.message)
+            }
+            Firebase.analytics.logEvent("alert_created") {
+                param("symbol", symbol)
+                param("direction", direction.name)
             }
         }
     }
@@ -138,6 +152,11 @@ class StockDetailViewModel(
                     analyticsError     = null
                 )
             }
+            Firebase.analytics.logEvent("simulator_run") {
+                param("symbol", symbol)
+                param("horizon", horizon.label)
+                param("probability", result.probabilityPct.toLong())
+            }
         }
     }
 
@@ -180,7 +199,11 @@ class StockDetailViewModel(
                         isNewsLoading     = false,
                         isLoading         = false
                     )
+                    Firebase.analytics.logEvent("stock_viewed") {
+                        param("symbol", symbol)
+                    }
                 }
+
             }
         }
     }
