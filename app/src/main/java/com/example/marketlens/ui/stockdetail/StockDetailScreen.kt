@@ -268,10 +268,10 @@ private fun AnalyticsResultCard(result: AnalyticsResult) {
             Text("Historical Probability", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("${"%.0f".format(result.probabilityPct)}%", color = probColor, style = MaterialTheme.typography.bodyMedium)
         }
-        result.medianDays?.let { days ->
+        result.medianDays?.let { weeks ->
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                Text("Median Days to Target", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("$days days", style = MaterialTheme.typography.bodyMedium)
+                Text("Median Weeks to Target", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("$weeks weeks")
             }
         }
         result.maxDrawdownPct?.let { drawdown ->
