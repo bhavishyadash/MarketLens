@@ -100,7 +100,6 @@ class StockDetailViewModel(
         _state.value = _state.value.copy(isAnalyticsLoading = true, analyticsError = null)
 
         viewModelScope.launch {
-
             val now         = Instant.now().epochSecond
             val twoYearsAgo = now - (2 * 365 * 86400L)
             val candleResult = repo.getCandles(symbol, "W", twoYearsAgo, now)
@@ -115,7 +114,6 @@ class StockDetailViewModel(
                     return@launch
                 }
             }
-
 
             val horizon      = _state.value.selectedHorizon
             val horizonWeeks = (horizon.days / 7).coerceAtLeast(4)
