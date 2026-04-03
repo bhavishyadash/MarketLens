@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 
 class AlertsViewModel(
     private val alertRepo: AlertRepository = AppContainer.alertRepository
@@ -25,6 +28,9 @@ class AlertsViewModel(
         viewModelScope.launch {
             alertRepo.deleteAlert(alertId)
             loadAlerts()
+        }
+        Firebase.analytics.logEvent("alert_deleted") {
+            param("alert_id", alertId)
         }
     }
 

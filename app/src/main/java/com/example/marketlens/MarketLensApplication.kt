@@ -8,6 +8,9 @@ import com.example.marketlens.util.NotificationHelper
 import com.example.marketlens.worker.AlertCheckWorker
 import com.example.marketlens.worker.NewsSignalWorker
 import java.util.concurrent.TimeUnit
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.ktx.Firebase
 
 class MarketLensApplication : Application() {
 
@@ -15,6 +18,7 @@ class MarketLensApplication : Application() {
         super.onCreate()
 
         NotificationHelper.createChannel(this)
+        Firebase.analytics.setAnalyticsCollectionEnabled(true)
 
         WorkManager.getInstance(this).apply {
 

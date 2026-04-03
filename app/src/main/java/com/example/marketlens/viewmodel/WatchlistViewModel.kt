@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.analytics.ktx.logEvent
+import com.google.firebase.ktx.Firebase
 
 class WatchlistViewModel(
     private val repo:          MarketRepository  = AppContainer.repository,
@@ -28,6 +31,9 @@ class WatchlistViewModel(
         viewModelScope.launch {
             watchlistRepo.removeSymbol(symbol)
             loadWatchlist()
+        }
+        Firebase.analytics.logEvent("watchlist_remove_from_list") {
+            param("symbol", symbol)
         }
     }
 
