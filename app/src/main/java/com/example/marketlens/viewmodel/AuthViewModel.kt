@@ -90,11 +90,27 @@ class AuthViewModel : ViewModel() {
 
     private suspend fun signUp(email: String, password: String, displayName: String) {
         val result = auth.createUserWithEmailAndPassword(email, password).await()
+
         result.user?.updateProfile(
             UserProfileChangeRequest.Builder()
                 .setDisplayName(displayName)
                 .build()
         )?.await()
+
+        result.user?.uid?.let { uid ->
+            FirebaseModule.firestore
+                .collection("users")
+                .document(uid)
+                .set(mapOf(
+                    "uid"         to uid,
+                    "displayName" to displayName,
+                    "email"       to email,
+                    "createdAt"   to System.currentTimeMillis(),
+                    "platform"    to "android"
+                ))
+                .await()
+        }
+
         _state.value = _state.value.copy(isLoading = false, isSuccess = true)
     }
 
