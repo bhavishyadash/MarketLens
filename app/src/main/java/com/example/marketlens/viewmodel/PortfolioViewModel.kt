@@ -33,7 +33,6 @@ class PortfolioViewModel(
 
     init { loadAll() }
 
-
     fun onDropdownExpand()   { _state.value = _state.value.copy(isDropdownExpanded = true) }
     fun onDropdownDismiss()  { _state.value = _state.value.copy(isDropdownExpanded = false) }
 
@@ -44,7 +43,6 @@ class PortfolioViewModel(
             formError           = null
         )
     }
-
 
     fun onShowForm()  {
         _state.value = _state.value.copy(
@@ -67,8 +65,6 @@ class PortfolioViewModel(
     fun onHorizonSelected(h: PortfolioHorizon) {
         _state.value = _state.value.copy(selectedHorizon = h, simulationError = null, result = _state.value.result?.copy(simulation = null))
     }
-
-
 
     fun onAddHolding() {
         val symbol        = _state.value.formSymbol
@@ -101,16 +97,12 @@ class PortfolioViewModel(
         }
     }
 
-
-
     fun onDeleteHolding(symbol: String) {
         viewModelScope.launch {
             portfolioRepo.deleteHolding(symbol)
             loadAll()
         }
     }
-
-
 
     fun onSimulate() {
         val holdings = _state.value.holdings
@@ -191,10 +183,9 @@ class PortfolioViewModel(
                 return@launch
             }
 
-
             val twoYearGainPct = ((blended.last() / blended.first()) - 1.0) * 100.0
             val horizon        = _state.value.selectedHorizon
-            val horizonRatio   = horizon.weeks.toDouble() / 104.0 // 104 weeks = 2 years
+            val horizonRatio   = horizon.weeks.toDouble() / 104.0
             val scaledTargetPct = (twoYearGainPct * horizonRatio).coerceAtLeast(1.0)
 
             val blendedCurrentValue = blended.last()
@@ -216,27 +207,33 @@ class PortfolioViewModel(
                 symbol       = "PORTFOLIO"
             )
 
-            _state.value = _state.value.copy(
-                isSimulating    = false,
-                simulationError = if (simulation == null) "Not enough historical overlap. Try adding stocks with longer history." else null,
-                result          = PortfolioResult(
-                    currentValue      = currentPortfolioValue,
-                    totalGainLoss     = totalGainLoss,
-                    totalGainLossPct  = totalGainLossPct,
-                    holdings          = snapshots,
-                    simulation        = simulation,
-                    historicalGainPct = twoYearGainPct,
-                    scaledTargetPct   = scaledTargetPct
+            if (simulation == null) {
+                _state.value = _state.value.copy(
+                    isSimulating    = false,
+                    simulationError = "Not enough historical overlap. Try adding stocks with longer history."
                 )
-            )
-            Firebase.analytics.logEvent("portfolio_simulation_run") {
-                param("holding_count", holdings.size.toLong())
-                param("horizon", horizon.label)
-                param("probability", simulation.probabilityPct.toLong())
+            } else {
+                _state.value = _state.value.copy(
+                    isSimulating    = false,
+                    simulationError = null,
+                    result          = PortfolioResult(
+                        currentValue      = currentPortfolioValue,
+                        totalGainLoss     = totalGainLoss,
+                        totalGainLossPct  = totalGainLossPct,
+                        holdings          = snapshots,
+                        simulation        = simulation,
+                        historicalGainPct = twoYearGainPct,
+                        scaledTargetPct   = scaledTargetPct
+                    )
+                )
+                Firebase.analytics.logEvent("portfolio_simulation_run") {
+                    param("holding_count", holdings.size.toLong())
+                    param("horizon", horizon.label)
+                    param("probability", simulation.probabilityPct.toLong())
+                }
             }
         }
     }
-
 
     private fun loadAll() {
         _state.value = _state.value.copy(isLoading = true, errorMessage = null)
@@ -244,26 +241,23 @@ class PortfolioViewModel(
             val holdingsDeferred  = async { portfolioRepo.getHoldings() }
             val watchlistDeferred = async { watchlistRepo.getWatchlistSymbols() }
 
-            val holdings = when (val r = holdingsDeferred.await()) {
-                is ApiResult.Success -> r.data
-                is ApiResult.Error   -> {
-                    _state.value = _state.value.copy(isLoading = false, errorMessage = r.message)
-                    return@launch
-                }
-            }
+            val holdingsResult = holdingsDeferred.await()
+            val watchlistResult = watchlistDeferred.await()
 
-            val watchlist = when (val r = watchlistDeferred.await()) {
-                is ApiResult.Success -> r.data
-                is ApiResult.Error   -> emptyList()
+            if (holdingsResult is ApiResult.Success) {
+                _state.value = _state.value.copy(
+                    isLoading        = false,
+                    holdings         = holdingsResult.data,
+                    watchlistSymbols = (watchlistResult as? ApiResult.Success)?.data ?: emptyList(),
+                    result           = null,
+                    isSaving         = false
+                )
+            } else if (holdingsResult is ApiResult.Error) {
+                _state.value = _state.value.copy(
+                    isLoading    = false,
+                    errorMessage = holdingsResult.message
+                )
             }
-
-            _state.value = _state.value.copy(
-                isLoading        = false,
-                holdings         = holdings,
-                watchlistSymbols = watchlist,
-                result           = null,
-                isSaving         = false
-            )
         }
     }
 }

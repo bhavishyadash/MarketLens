@@ -40,11 +40,9 @@ class StockDetailViewModel(
 
     init { loadAll(symbol, Timeframe.ONE_MONTH) }
 
-
-
     fun onToggleWatchlist() {
+        val current = _state.value.isInWatchlist
         viewModelScope.launch {
-            val current = _state.value.isInWatchlist
             if (current) watchlistRepo.removeSymbol(symbol) else watchlistRepo.addSymbol(symbol)
             _state.value = _state.value.copy(isInWatchlist = !current)
         }
@@ -140,22 +138,22 @@ class StockDetailViewModel(
                 symbol       = symbol
             )
 
-            _state.value = if (result == null) {
-                _state.value.copy(
+            if (result == null) {
+                _state.value = _state.value.copy(
                     isAnalyticsLoading = false,
                     analyticsError     = "Not enough historical data for this horizon"
                 )
             } else {
-                _state.value.copy(
+                _state.value = _state.value.copy(
                     analyticsResult    = result,
                     isAnalyticsLoading = false,
                     analyticsError     = null
                 )
-            }
-            Firebase.analytics.logEvent("simulator_run") {
-                param("symbol", symbol)
-                param("horizon", horizon.label)
-                param("probability", result.probabilityPct.toLong())
+                Firebase.analytics.logEvent("simulator_run") {
+                    param("symbol", symbol)
+                    param("horizon", horizon.label)
+                    param("probability", result.probabilityPct.toLong())
+                }
             }
         }
     }
@@ -203,7 +201,6 @@ class StockDetailViewModel(
                         param("symbol", symbol)
                     }
                 }
-
             }
         }
     }

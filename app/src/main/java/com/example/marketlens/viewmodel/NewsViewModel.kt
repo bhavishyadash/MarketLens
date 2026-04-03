@@ -28,11 +28,15 @@ class NewsViewModel(
         _state.value = NewsState(isLoading = true)
         viewModelScope.launch {
             when (val result = newsRepo.getMarketNews()) {
-                is ApiResult.Success -> _state.value = NewsState(isLoading = false, articles = result.data)
-                is ApiResult.Error   -> _state.value = NewsState(isLoading = false, errorMessage = result.message)
-            }
-            Firebase.analytics.logEvent("news_viewed") {
-                param("article_count", result.data.size.toLong())
+                is ApiResult.Success -> {
+                    _state.value = NewsState(isLoading = false, articles = result.data)
+                    Firebase.analytics.logEvent("news_viewed") {
+                        param("article_count", result.data.size.toLong())
+                    }
+                }
+                is ApiResult.Error -> {
+                    _state.value = NewsState(isLoading = false, errorMessage = result.message)
+                }
             }
         }
     }
