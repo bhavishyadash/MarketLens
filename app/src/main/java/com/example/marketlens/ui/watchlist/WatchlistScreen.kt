@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,35 +27,34 @@ import com.example.marketlens.viewmodel.WatchlistViewModel
 fun WatchlistScreen(viewModel: WatchlistViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
 
+    // Silently refresh symbols every time user navigates to this tab
+    // No spinner — happens in the background
+    LaunchedEffect(Unit) {
+        viewModel.onScreenVisible()
+    }
+
     AnimatedContent(
-        targetState = state,
+        targetState  = state,
         transitionSpec = { fadeIn(tween(300)) togetherWith fadeOut(tween(200)) },
-        label = "watchlist_content"
+        label        = "watchlist_content"
     ) { s ->
         when {
             s.isLoading -> LoadingView()
-            s.errorMessage != null -> ErrorView(message = s.errorMessage, onRetry = { viewModel.refresh() })
+            s.errorMessage != null -> ErrorView(message = s.errorMessage, onRetry = null)
             s.items.isEmpty() -> EmptyWatchlist()
-            else -> WatchlistContent(
-                items    = s.items,
-                onRemove = { viewModel.removeSymbol(it) },
-                onRefresh = { viewModel.refresh() }
-            )
+            else -> WatchlistContent(items = s.items, onRemove = { viewModel.removeSymbol(it) })
         }
     }
 }
 
 @Composable
-private fun WatchlistContent(items: List<WatchlistRowUi>, onRemove: (String) -> Unit, onRefresh: () -> Unit) {
+private fun WatchlistContent(items: List<WatchlistRowUi>, onRemove: (String) -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Spacer(Modifier.height(4.dp))
-        Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-            Text("Watchlist", style = MaterialTheme.typography.titleLarge)
-            IconButton(onClick = onRefresh) { Icon(Icons.Filled.Refresh, "Refresh") }
-        }
+        Text("Watchlist", style = MaterialTheme.typography.titleLarge)
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -100,11 +98,8 @@ private fun EmptyWatchlist() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Your watchlist is empty", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Open any stock and tap the bookmark icon to add it",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall
-            )
+            Text("Open any stock and tap the bookmark icon to add it",
+                color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
