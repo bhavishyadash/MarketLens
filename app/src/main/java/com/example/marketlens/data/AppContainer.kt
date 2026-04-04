@@ -16,8 +16,26 @@ import com.example.marketlens.data.repository.RealMarketRepository
 import com.example.marketlens.data.repository.SettingsRepository
 import com.example.marketlens.data.repository.SignalRepository
 import com.example.marketlens.data.repository.WatchlistRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 object AppContainer {
+
+    /*
+        watchlistChanged is a broadcast channel.
+        Any ViewModel that modifies the watchlist emits Unit here.
+        Any ViewModel that displays watchlist data collects it and re-fetches.
+
+        replay = 0 means new collectors don't get old emissions — only
+        future changes trigger a refresh, which is exactly what we want.
+    */
+    private val _watchlistChanged = MutableSharedFlow<Unit>(replay = 0)
+    val watchlistChanged: SharedFlow<Unit> = _watchlistChanged.asSharedFlow()
+
+    suspend fun notifyWatchlistChanged() {
+        _watchlistChanged.emit(Unit)
+    }
 
     val repository: MarketRepository by lazy {
         RealMarketRepository(api = NetworkModule.marketApi, yahoo = NetworkModule.yahooFinanceApi)

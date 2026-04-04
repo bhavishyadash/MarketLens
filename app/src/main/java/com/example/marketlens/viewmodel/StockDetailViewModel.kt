@@ -21,9 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.Instant
-import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.analytics.ktx.logEvent
-import com.google.firebase.ktx.Firebase
 
 class StockDetailViewModel(
     savedStateHandle:  SavedStateHandle,
@@ -40,18 +37,22 @@ class StockDetailViewModel(
 
     init { loadAll(symbol, Timeframe.ONE_MONTH) }
 
+    // ── Watchlist toggle ──────────────────────────────────────────────────────
+
     fun onToggleWatchlist() {
-        val current = _state.value.isInWatchlist
         viewModelScope.launch {
-            if (current) watchlistRepo.removeSymbol(symbol) else watchlistRepo.addSymbol(symbol)
+            val current = _state.value.isInWatchlist
+            if (current) watchlistRepo.removeSymbol(symbol)
+            else watchlistRepo.addSymbol(symbol)
             _state.value = _state.value.copy(isInWatchlist = !current)
-        }
-        if (current) {
-            Firebase.analytics.logEvent("watchlist_remove") { param("symbol", symbol) }
-        } else {
-            Firebase.analytics.logEvent("watchlist_add") { param("symbol", symbol) }
+
+            // Broadcast to all listeners — Watchlist, Dashboard, Portfolio
+            // will silently re-fetch their symbol lists automatically
+            AppContainer.notifyWatchlistChanged()
         }
     }
+
+    // ── Alert ─────────────────────────────────────────────────────────────────
 
     fun onAlertPriceChanged(input: String) {
         val filtered = input.filter { it.isDigit() || it == '.' }
@@ -69,17 +70,17 @@ class StockDetailViewModel(
                 is ApiResult.Success -> _state.value = _state.value.copy(alertSetSuccess = true, alertError = null, alertPriceInput = "")
                 is ApiResult.Error   -> _state.value = _state.value.copy(alertError = result.message)
             }
-            Firebase.analytics.logEvent("alert_created") {
-                param("symbol", symbol)
-                param("direction", direction.name)
-            }
         }
     }
+
+    // ── Timeframe ─────────────────────────────────────────────────────────────
 
     fun onTimeframeSelected(timeframe: Timeframe) {
         _state.value = _state.value.copy(selectedTimeframe = timeframe, isCandleLoading = true, candleError = null)
         loadCandle(symbol, timeframe)
     }
+
+    // ── Simulator ─────────────────────────────────────────────────────────────
 
     fun onTargetPriceChanged(input: String) {
         val filtered = input.filter { it.isDigit() || it == '.' }
@@ -119,10 +120,7 @@ class StockDetailViewModel(
             val prices = when (candleResult) {
                 is ApiResult.Success -> candleResult.data.closePrices
                 is ApiResult.Error   -> {
-                    _state.value = _state.value.copy(
-                        isAnalyticsLoading = false,
-                        analyticsError     = "Could not load price history"
-                    )
+                    _state.value = _state.value.copy(isAnalyticsLoading = false, analyticsError = "Could not load price history")
                     return@launch
                 }
             }
@@ -138,25 +136,15 @@ class StockDetailViewModel(
                 symbol       = symbol
             )
 
-            if (result == null) {
-                _state.value = _state.value.copy(
-                    isAnalyticsLoading = false,
-                    analyticsError     = "Not enough historical data for this horizon"
-                )
+            _state.value = if (result == null) {
+                _state.value.copy(isAnalyticsLoading = false, analyticsError = "Not enough historical data for this horizon")
             } else {
-                _state.value = _state.value.copy(
-                    analyticsResult    = result,
-                    isAnalyticsLoading = false,
-                    analyticsError     = null
-                )
-                Firebase.analytics.logEvent("simulator_run") {
-                    param("symbol", symbol)
-                    param("horizon", horizon.label)
-                    param("probability", result.probabilityPct.toLong())
-                }
+                _state.value.copy(analyticsResult = result, isAnalyticsLoading = false, analyticsError = null)
             }
         }
     }
+
+    // ── Initial load ──────────────────────────────────────────────────────────
 
     private fun loadAll(symbol: String, timeframe: Timeframe) {
         _state.value = StockDetailState(isLoading = true)
@@ -177,7 +165,9 @@ class StockDetailViewModel(
             val inWatchlist   = watchlistDeferred.await()
 
             when (quoteResult) {
-                is ApiResult.Error -> _state.value = StockDetailState(symbol = symbol, isLoading = false, errorMessage = quoteResult.message)
+                is ApiResult.Error -> _state.value = StockDetailState(
+                    symbol = symbol, isLoading = false, errorMessage = quoteResult.message
+                )
                 is ApiResult.Success -> {
                     val q = quoteResult.data
                     _state.value = StockDetailState(
@@ -197,9 +187,6 @@ class StockDetailViewModel(
                         isNewsLoading     = false,
                         isLoading         = false
                     )
-                    Firebase.analytics.logEvent("stock_viewed") {
-                        param("symbol", symbol)
-                    }
                 }
             }
         }
