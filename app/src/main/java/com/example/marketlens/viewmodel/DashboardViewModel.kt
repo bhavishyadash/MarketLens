@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.marketlens.data.AppContainer
 import com.example.marketlens.data.model.MarketIndex
 import com.example.marketlens.data.model.MarketMover
+import com.example.marketlens.data.model.StockQuote
 import com.example.marketlens.data.model.WatchlistItem
 import com.example.marketlens.data.network.ApiResult
 import com.example.marketlens.data.repository.MarketRepository
 import com.example.marketlens.data.repository.WatchlistRepository
 import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,8 +31,6 @@ class DashboardViewModel(
     init {
         loadDashboard()
 
-        // When watchlist changes, silently refresh just the watchlist preview
-        // without reloading the full dashboard (no spinner, no flicker)
         viewModelScope.launch {
             AppContainer.watchlistChanged.collect {
                 refreshWatchlistPreviewSilently()
@@ -40,19 +40,19 @@ class DashboardViewModel(
 
     fun refresh() { loadDashboard() }
 
-    // Silently updates only the watchlist preview section of the dashboard
-    private suspend fun refreshWatchlistPreviewSilently() {
+    private suspend fun refreshWatchlistPreviewSilently() = coroutineScope {
         val symbols = when (val r = watchlistRepo.getWatchlistSymbols()) {
             is ApiResult.Success -> r.data.take(5)
-            is ApiResult.Error   -> return
+            is ApiResult.Error   -> return@coroutineScope
         }
 
         val watchlistPreview = symbols
             .map { symbol -> async { repo.getQuote(symbol) } }
-            .mapNotNull { (it.await() as? ApiResult.Success)?.data }
+            .map { it.await() }
+            .filterIsInstance<ApiResult.Success<*>>()
+            .mapNotNull { it.data as? StockQuote }
             .map { WatchlistItem(it.symbol, it.price, it.percentChange) }
 
-        // Only update the watchlist preview — everything else stays the same
         _state.value = _state.value.copy(watchlistPreview = watchlistPreview)
     }
 
@@ -69,18 +69,22 @@ class DashboardViewModel(
             val watchlistDeferreds = watchlistSymbols.map { it to async { repo.getQuote(it) } }
 
             val indices = indexDeferreds.mapNotNull { (symbol, d) ->
-                (d.await() as? ApiResult.Success)?.data?.let {
-                    MarketIndex(indexSymbols[symbol] ?: symbol, it.price, it.percentChange, it.percentChange >= 0)
+                (d.await() as? ApiResult.Success<*>)?.data?.let {
+                    val q = it as? StockQuote
+                    if (q != null) {
+                        MarketIndex(indexSymbols[symbol] ?: symbol, q.price, q.percentChange, q.percentChange >= 0)
+                    } else null
                 }
             }
 
-            val allQuotes = moverDeferreds.mapNotNull { (it.await() as? ApiResult.Success)?.data }
+            val allQuotes = moverDeferreds.mapNotNull { (it.await() as? ApiResult.Success<*>)?.data as? StockQuote }
             val topGainer = allQuotes.maxByOrNull { it.percentChange }?.let { MarketMover(it.symbol, it.price, it.percentChange) }
             val topLoser  = allQuotes.minByOrNull { it.percentChange }?.let { MarketMover(it.symbol, it.price, it.percentChange) }
 
             val watchlistPreview = watchlistDeferreds.mapNotNull { (_, d) ->
-                (d.await() as? ApiResult.Success)?.data?.let {
-                    WatchlistItem(it.symbol, it.price, it.percentChange)
+                (d.await() as? ApiResult.Success<*>)?.data?.let {
+                    val q = it as? StockQuote
+                    if (q != null) WatchlistItem(q.symbol, q.price, q.percentChange) else null
                 }
             }
 

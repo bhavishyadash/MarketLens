@@ -38,7 +38,7 @@ fun PortfolioScreen(viewModel: PortfolioViewModel = viewModel()) {
 
     when {
         state.isLoading -> LoadingView()
-        state.errorMessage != null -> ErrorView(message = state.errorMessage, onRetry = null)
+        state.errorMessage != null -> ErrorView(message = state.errorMessage!!, onRetry = null)
         else -> Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
