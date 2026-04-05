@@ -6,38 +6,83 @@ import com.example.marketlens.data.model.StockCandle
 import com.example.marketlens.data.model.StockProfile
 import com.example.marketlens.data.model.StockQuote
 import com.example.marketlens.data.network.ApiResult
-import com.example.marketlens.data.network.MarketApi
 import com.example.marketlens.data.network.YahooFinanceApi
-import kotlinx.coroutines.delay
 
 class RealMarketRepository(
-    private val api:   MarketApi,
     private val yahoo: YahooFinanceApi
 ) : MarketRepository {
 
-
+    // ── Quote ─────────────────────────────────────────────────────────────────
+    /*
+        Single symbol quote.
+        Checks cache first (1-min TTL) before hitting Yahoo.
+    */
     override suspend fun getQuote(symbol: String): ApiResult<StockQuote> {
         QuoteCache.get(symbol)?.let { return ApiResult.Success(it) }
 
-        return retryWithBackoff {
-            val dto = api.getQuote(symbol)
-            val quote = StockQuote(symbol, symbol, dto.currentPrice, dto.percentChange)
+        return try {
+            val response = yahoo.getQuotes(symbol)
+            val dto = response.quoteResponse.result?.firstOrNull()
+                ?: return ApiResult.Error("No data for $symbol")
+
+            val price  = dto.regularMarketPrice
+                ?: return ApiResult.Error("No price data for $symbol")
+            val change = dto.regularMarketChangePercent ?: 0.0
+            val name   = dto.longName ?: dto.shortName ?: symbol
+
+            val quote = StockQuote(symbol, name, price, change)
             QuoteCache.put(quote)
             ApiResult.Success(quote)
+        } catch (e: Exception) {
+            ApiResult.Error("Could not load quote for $symbol: ${e.message}", e)
         }
     }
 
+    // ── Bulk quotes ───────────────────────────────────────────────────────────
+    /*
+        Fetch multiple symbols in ONE request.
+        e.g. getBulkQuotes(listOf("AAPL","MSFT","NVDA"))
+        → single HTTP call instead of 3 separate calls.
+
+        Used by MarketsViewModel to load the full default stock list fast.
+    */
+    suspend fun getBulkQuotes(symbols: List<String>): ApiResult<List<StockQuote>> {
+        return try {
+            val joined   = symbols.joinToString(",")
+            val response = yahoo.getQuotes(joined)
+            val results  = response.quoteResponse.result
+                ?: return ApiResult.Error("No market data available")
+
+            val quotes = results.mapNotNull { dto ->
+                val price  = dto.regularMarketPrice ?: return@mapNotNull null
+                val change = dto.regularMarketChangePercent ?: 0.0
+                val name   = dto.longName ?: dto.shortName ?: dto.symbol
+                val quote  = StockQuote(dto.symbol, name, price, change)
+                QuoteCache.put(quote)
+                quote
+            }
+            ApiResult.Success(quotes)
+        } catch (e: Exception) {
+            ApiResult.Error("Could not load market data: ${e.message}", e)
+        }
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
 
     override suspend fun searchSymbols(query: String): ApiResult<List<SearchResult>> {
-        return retryWithBackoff {
-            val dto = api.searchSymbols(query)
-            val results = dto.result
-                .filter { it.type == "Common Stock" || it.type == "ETP" }
-                .map { SearchResult(it.symbol, it.description, it.type) }
+        return try {
+            val response = yahoo.search(query = query, quotesCount = 15, newsCount = 0)
+            val results  = response.quotes
+                ?.filter { it.type == "Equity" || it.type == null }
+                ?.map { SearchResult(it.symbol, it.longname ?: it.shortname ?: it.symbol, "Common Stock") }
+                ?: emptyList()
             ApiResult.Success(results)
+        } catch (e: Exception) {
+            ApiResult.Error("Search failed: ${e.message}", e)
         }
     }
 
+    // ── Candles ───────────────────────────────────────────────────────────────
 
     override suspend fun getCandles(
         symbol: String, resolution: String, from: Long, to: Long
@@ -45,14 +90,14 @@ class RealMarketRepository(
         return try {
             val daysBack = (to - from) / 86400L
             val (interval, range) = when {
-                resolution == "W"    -> "1wk" to "2y"
-                daysBack > 60        -> "1d"  to "3mo"
-                else                 -> "1d"  to "1mo"
+                resolution == "W"  -> "1wk" to "2y"
+                daysBack > 60      -> "1d"  to "3mo"
+                else               -> "1d"  to "1mo"
             }
 
             val response = yahoo.getChart(symbol, interval, range)
             val result   = response.chart.result?.firstOrNull()
-                ?: return ApiResult.Error("No chart data available for $symbol")
+                ?: return ApiResult.Error("No chart data for $symbol")
 
             val closePrices = result.indicators.quote
                 .firstOrNull()
@@ -70,45 +115,45 @@ class RealMarketRepository(
         }
     }
 
-
+    // ── Profile ───────────────────────────────────────────────────────────────
+    /*
+        v7/finance/quote returns everything we need:
+        name, exchange, industry, market cap, 52W high/low, P/E, beta.
+        One call — no more two separate Finnhub calls.
+    */
     override suspend fun getStockProfile(symbol: String): ApiResult<StockProfile> {
-        return retryWithBackoff {
-            val profileDto = api.getStockProfile(symbol)
-            val metricDto  = api.getStockMetric(symbol).metric
+        return try {
+            val response = yahoo.getQuotes(symbol)
+            val dto = response.quoteResponse.result?.firstOrNull()
+                ?: return ApiResult.Error("No profile data for $symbol")
+
             ApiResult.Success(
                 StockProfile(
                     symbol             = symbol,
-                    name               = profileDto.name,
-                    exchange           = profileDto.exchange,
-                    industry           = profileDto.industry,
-                    marketCapFormatted = formatMarketCap(profileDto.marketCapMillions),
-                    week52High         = metricDto.week52High,
-                    week52Low          = metricDto.week52Low,
-                    peRatio            = metricDto.peRatio,
-                    beta               = metricDto.beta
+                    name               = dto.longName ?: dto.shortName ?: symbol,
+                    exchange           = dto.fullExchangeName ?: "N/A",
+                    industry           = dto.industry ?: dto.sector ?: "N/A",
+                    marketCapFormatted = formatMarketCap(dto.marketCap),
+                    week52High         = dto.fiftyTwoWeekHigh,
+                    week52Low          = dto.fiftyTwoWeekLow,
+                    peRatio            = dto.trailingPE,
+                    beta               = dto.beta
                 )
             )
+        } catch (e: Exception) {
+            ApiResult.Error("Could not load profile for $symbol: ${e.message}", e)
         }
     }
 
-    private fun formatMarketCap(millions: Double): String = when {
-        millions >= 1_000_000 -> "$%.2fT".format(millions / 1_000_000)
-        millions >= 1_000     -> "$%.1fB".format(millions / 1_000)
-        else                  -> "$%.1fM".format(millions)
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private suspend fun <T> retryWithBackoff(block: suspend () -> ApiResult<T>): ApiResult<T> {
-        var lastResult: ApiResult<T> = ApiResult.Error("Unknown error")
-        val delays = listOf(500L, 1000L)
-        for ((attempt, delayMs) in delays.withIndex()) {
-            return try {
-                block()
-            } catch (e: Exception) {
-                lastResult = ApiResult.Error("Network error: ${e.message}", e)
-                if (attempt < delays.lastIndex) delay(delayMs)
-                continue
-            }
+    private fun formatMarketCap(marketCapBytes: Long?): String {
+        if (marketCapBytes == null) return "N/A"
+        return when {
+            marketCapBytes >= 1_000_000_000_000L -> "$%.2fT".format(marketCapBytes / 1_000_000_000_000.0)
+            marketCapBytes >= 1_000_000_000L     -> "$%.1fB".format(marketCapBytes / 1_000_000_000.0)
+            marketCapBytes >= 1_000_000L         -> "$%.1fM".format(marketCapBytes / 1_000_000.0)
+            else                                 -> "$$marketCapBytes"
         }
-        return lastResult
     }
 }

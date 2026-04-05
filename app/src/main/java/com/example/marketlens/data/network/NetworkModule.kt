@@ -1,6 +1,5 @@
 package com.example.marketlens.data.network
 
-import com.example.marketlens.BuildConfig
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.Interceptor
@@ -14,23 +13,11 @@ object NetworkModule {
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
-    private val finnhubClient = OkHttpClient.Builder()
-        .addInterceptor(Interceptor { chain ->
-            val original = chain.request()
-            val url = original.url.newBuilder()
-                .addQueryParameter("token", BuildConfig.FINNHUB_API_KEY)
-                .build()
-            chain.proceed(original.newBuilder().url(url).build())
-        })
-        .build()
-
-    val marketApi: MarketApi = Retrofit.Builder()
-        .baseUrl("https://finnhub.io/api/v1/")
-        .client(finnhubClient)
-        .addConverterFactory(MoshiConverterFactory.create(moshi))
-        .build()
-        .create(MarketApi::class.java)
-
+    /*
+        Yahoo Finance requires a browser-like User-Agent header.
+        Without it, requests return 403 or empty responses.
+        This interceptor attaches it to every request automatically.
+    */
     private val yahooClient = OkHttpClient.Builder()
         .addInterceptor(Interceptor { chain ->
             val request = chain.request().newBuilder()
