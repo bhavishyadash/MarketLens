@@ -22,14 +22,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 
 object AppContainer {
 
-    /*
-        watchlistChanged is a broadcast channel.
-        Any ViewModel that modifies the watchlist emits Unit here.
-        Any ViewModel that displays watchlist data collects it and re-fetches.
-
-        replay = 0 means new collectors don't get old emissions — only
-        future changes trigger a refresh, which is exactly what we want.
-    */
     private val _watchlistChanged = MutableSharedFlow<Unit>(replay = 0)
     val watchlistChanged: SharedFlow<Unit> = _watchlistChanged.asSharedFlow()
 
@@ -38,11 +30,14 @@ object AppContainer {
     }
 
     val repository: MarketRepository by lazy {
-        RealMarketRepository(api = NetworkModule.marketApi, yahoo = NetworkModule.yahooFinanceApi)
+        RealMarketRepository(yahoo = NetworkModule.yahooFinanceApi)
     }
 
     val newsRepository: NewsRepository by lazy {
-        FirestoreNewsRepository(api = NetworkModule.marketApi, db = FirebaseModule.firestore)
+        FirestoreNewsRepository(
+            yahoo = NetworkModule.yahooFinanceApi,
+            db    = FirebaseModule.firestore
+        )
     }
 
     val watchlistRepository: WatchlistRepository by lazy {
