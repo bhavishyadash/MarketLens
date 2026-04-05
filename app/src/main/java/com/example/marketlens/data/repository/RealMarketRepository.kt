@@ -16,42 +16,30 @@ class RealMarketRepository(
         QuoteCache.get(symbol)?.let { return ApiResult.Success(it) }
 
         return try {
-            val response = yahoo.getQuotes(symbol)
-            val dto = response.quoteResponse.result?.firstOrNull()
+            val response = yahoo.getChart(symbol, "1m", "1d")
+            val result   = response.chart.result?.firstOrNull()
                 ?: return ApiResult.Error("No data for $symbol")
 
-            val price  = dto.regularMarketPrice
-                ?: return ApiResult.Error("No price data for $symbol")
-            val change = dto.regularMarketChangePercent ?: 0.0
-            val name   = dto.longName ?: dto.shortName ?: symbol
-
-            val quote = StockQuote(symbol, name, price, change)
+            val price  = result.indicators.quote.firstOrNull()?.close?.lastNotNull()
+                ?: return ApiResult.Error("No price for $symbol")
+            
+            val quote = StockQuote(symbol, symbol, price, 0.0)
             QuoteCache.put(quote)
             ApiResult.Success(quote)
         } catch (e: Exception) {
-            ApiResult.Error("Network error ($symbol): ${e.message}", e)
+            ApiResult.Error("API Blocked ($symbol): ${e.message}", e)
         }
     }
 
-    suspend fun getBulkQuotes(symbols: List<String>): ApiResult<List<StockQuote>> {
-        return try {
-            val joined   = symbols.joinToString(",")
-            val response = yahoo.getQuotes(joined)
-            val results  = response.quoteResponse.result
-                ?: return ApiResult.Error("No market data available")
+    private fun List<Double?>.lastNotNull(): Double? = lastOrNull { it != null }
 
-            val quotes = results.mapNotNull { dto ->
-                val price  = dto.regularMarketPrice ?: return@mapNotNull null
-                val change = dto.regularMarketChangePercent ?: 0.0
-                val name   = dto.longName ?: dto.shortName ?: dto.symbol
-                val quote  = StockQuote(dto.symbol, name, price, change)
-                QuoteCache.put(quote)
-                quote
-            }
-            ApiResult.Success(quotes)
-        } catch (e: Exception) {
-            ApiResult.Error("Market load failed: ${e.message}", e)
+    suspend fun getBulkQuotes(symbols: List<String>): ApiResult<List<StockQuote>> {
+        val quotes = mutableListOf<StockQuote>()
+        for (s in symbols) {
+            val res = getQuote(s)
+            if (res is ApiResult.Success) quotes.add(res.data)
         }
+        return if (quotes.isEmpty()) ApiResult.Error("Market load failed") else ApiResult.Success(quotes)
     }
 
     override suspend fun searchSymbols(query: String): ApiResult<List<SearchResult>> {
@@ -100,35 +88,25 @@ class RealMarketRepository(
 
     override suspend fun getStockProfile(symbol: String): ApiResult<StockProfile> {
         return try {
-            val response = yahoo.getQuotes(symbol)
-            val dto = response.quoteResponse.result?.firstOrNull()
-                ?: return ApiResult.Error("No profile data for $symbol")
+            val quoteRes = getQuote(symbol)
+            if (quoteRes is ApiResult.Error) return ApiResult.Error(quoteRes.message)
+            val q = (quoteRes as ApiResult.Success).data
 
             ApiResult.Success(
                 StockProfile(
                     symbol             = symbol,
-                    name               = dto.longName ?: dto.shortName ?: symbol,
-                    exchange           = dto.fullExchangeName ?: "N/A",
-                    industry           = dto.industry ?: dto.sector ?: "N/A",
-                    marketCapFormatted = formatMarketCap(dto.marketCap),
-                    week52High         = dto.fiftyTwoWeekHigh,
-                    week52Low          = dto.fiftyTwoWeekLow,
-                    peRatio            = dto.trailingPE,
-                    beta               = dto.beta
+                    name               = q.name,
+                    exchange           = "N/A",
+                    industry           = "N/A",
+                    marketCapFormatted = "N/A",
+                    week52High         = null,
+                    week52Low          = null,
+                    peRatio            = null,
+                    beta               = null
                 )
             )
         } catch (e: Exception) {
             ApiResult.Error("Profile error ($symbol): ${e.message}", e)
-        }
-    }
-
-    private fun formatMarketCap(marketCapBytes: Long?): String {
-        if (marketCapBytes == null) return "N/A"
-        return when {
-            marketCapBytes >= 1_000_000_000_000L -> "$%.2fT".format(marketCapBytes / 1_000_000_000_000.0)
-            marketCapBytes >= 1_000_000_000L     -> "$%.1fB".format(marketCapBytes / 1_000_000_000.0)
-            marketCapBytes >= 1_000_000L         -> "$%.1fM".format(marketCapBytes / 1_000_000.0)
-            else                                 -> "$$marketCapBytes"
         }
     }
 }

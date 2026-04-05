@@ -16,7 +16,7 @@ interface YahooFinanceApi {
         @Query("range")    range: String
     ): YahooChartResponseDto
 
-    @GET("v6/finance/quote")
+    @GET("v7/finance/quote")
     suspend fun getQuotes(
         @Query("symbols") symbols: String
     ): YahooQuoteResponseDto
