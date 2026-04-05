@@ -12,8 +12,17 @@ data class YahooChartDto(
 )
 
 data class YahooChartResultDto(
+    @Json(name = "meta")       val meta: YahooChartMetaDto?,
     @Json(name = "timestamp")  val timestamps: List<Long>?,
     @Json(name = "indicators") val indicators: YahooIndicatorsDto
+)
+
+data class YahooChartMetaDto(
+    @Json(name = "symbol")             val symbol: String,
+    @Json(name = "chartPreviousClose") val chartPreviousClose: Double?,
+    @Json(name = "regularMarketPrice") val regularMarketPrice: Double?,
+    @Json(name = "shortName")          val shortName: String?,
+    @Json(name = "longName")           val longName: String?
 )
 
 data class YahooIndicatorsDto(

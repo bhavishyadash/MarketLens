@@ -20,10 +20,19 @@ class RealMarketRepository(
             val result   = response.chart.result?.firstOrNull()
                 ?: return ApiResult.Error("No data for $symbol")
 
-            val price  = result.indicators.quote.firstOrNull()?.close?.lastNotNull()
+            val meta = result.meta
+            val price = meta?.regularMarketPrice 
+                ?: result.indicators.quote.firstOrNull()?.close?.lastNotNull()
                 ?: return ApiResult.Error("No price for $symbol")
+
+            val prevClose = meta?.chartPreviousClose
+            val percentChange = if (prevClose != null && prevClose != 0.0) {
+                ((price - prevClose) / prevClose) * 100.0
+            } else 0.0
+
+            val name = meta?.longName ?: meta?.shortName ?: symbol
             
-            val quote = StockQuote(symbol, symbol, price, 0.0)
+            val quote = StockQuote(symbol, name, price, percentChange)
             QuoteCache.put(quote)
             ApiResult.Success(quote)
         } catch (e: Exception) {
