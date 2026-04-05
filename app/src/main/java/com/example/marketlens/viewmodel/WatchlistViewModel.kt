@@ -8,6 +8,7 @@ import com.example.marketlens.data.network.ApiResult
 import com.example.marketlens.data.repository.MarketRepository
 import com.example.marketlens.data.repository.WatchlistRepository
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,8 +62,7 @@ class WatchlistViewModel(
             _state.value = _state.value.copy(isLoading = true, errorMessage = null)
         }
 
-        val symbolsResult = watchlistRepo.getWatchlistSymbols()
-        val symbols = when (symbolsResult) {
+        val symbols = when (val symbolsResult = watchlistRepo.getWatchlistSymbols()) {
             is ApiResult.Success -> symbolsResult.data
             is ApiResult.Error   -> {
                 if (showLoading) {
@@ -81,8 +81,7 @@ class WatchlistViewModel(
             async { repo.getQuote(symbol) }
         }
 
-        val items = deferredQuotes
-            .map { it.await() }
+        val items = deferredQuotes.awaitAll()
             .filterIsInstance<ApiResult.Success<StockQuote>>()
             .map { it.data }
             .map { WatchlistRowUi(it.symbol, it.price, it.percentChange) }

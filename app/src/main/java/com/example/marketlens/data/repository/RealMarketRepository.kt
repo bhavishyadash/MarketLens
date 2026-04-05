@@ -12,11 +12,6 @@ class RealMarketRepository(
     private val yahoo: YahooFinanceApi
 ) : MarketRepository {
 
-    // ── Quote ─────────────────────────────────────────────────────────────────
-    /*
-        Single symbol quote.
-        Checks cache first (1-min TTL) before hitting Yahoo.
-    */
     override suspend fun getQuote(symbol: String): ApiResult<StockQuote> {
         QuoteCache.get(symbol)?.let { return ApiResult.Success(it) }
 
@@ -34,18 +29,10 @@ class RealMarketRepository(
             QuoteCache.put(quote)
             ApiResult.Success(quote)
         } catch (e: Exception) {
-            ApiResult.Error("Could not load quote for $symbol: ${e.message}", e)
+            ApiResult.Error("Network error ($symbol): ${e.message}", e)
         }
     }
 
-    // ── Bulk quotes ───────────────────────────────────────────────────────────
-    /*
-        Fetch multiple symbols in ONE request.
-        e.g. getBulkQuotes(listOf("AAPL","MSFT","NVDA"))
-        → single HTTP call instead of 3 separate calls.
-
-        Used by MarketsViewModel to load the full default stock list fast.
-    */
     suspend fun getBulkQuotes(symbols: List<String>): ApiResult<List<StockQuote>> {
         return try {
             val joined   = symbols.joinToString(",")
@@ -63,11 +50,9 @@ class RealMarketRepository(
             }
             ApiResult.Success(quotes)
         } catch (e: Exception) {
-            ApiResult.Error("Could not load market data: ${e.message}", e)
+            ApiResult.Error("Market load failed: ${e.message}", e)
         }
     }
-
-    // ── Search ────────────────────────────────────────────────────────────────
 
     override suspend fun searchSymbols(query: String): ApiResult<List<SearchResult>> {
         return try {
@@ -81,8 +66,6 @@ class RealMarketRepository(
             ApiResult.Error("Search failed: ${e.message}", e)
         }
     }
-
-    // ── Candles ───────────────────────────────────────────────────────────────
 
     override suspend fun getCandles(
         symbol: String, resolution: String, from: Long, to: Long
@@ -111,16 +94,10 @@ class RealMarketRepository(
             ApiResult.Success(StockCandle(timestamps, closePrices, "ok"))
 
         } catch (e: Exception) {
-            ApiResult.Error("Could not load chart for $symbol: ${e.message}", e)
+            ApiResult.Error("Chart error ($symbol): ${e.message}", e)
         }
     }
 
-    // ── Profile ───────────────────────────────────────────────────────────────
-    /*
-        v7/finance/quote returns everything we need:
-        name, exchange, industry, market cap, 52W high/low, P/E, beta.
-        One call — no more two separate Finnhub calls.
-    */
     override suspend fun getStockProfile(symbol: String): ApiResult<StockProfile> {
         return try {
             val response = yahoo.getQuotes(symbol)
@@ -141,11 +118,9 @@ class RealMarketRepository(
                 )
             )
         } catch (e: Exception) {
-            ApiResult.Error("Could not load profile for $symbol: ${e.message}", e)
+            ApiResult.Error("Profile error ($symbol): ${e.message}", e)
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun formatMarketCap(marketCapBytes: Long?): String {
         if (marketCapBytes == null) return "N/A"

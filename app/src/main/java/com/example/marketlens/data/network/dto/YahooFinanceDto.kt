@@ -2,8 +2,6 @@ package com.example.marketlens.data.network.dto
 
 import com.squareup.moshi.Json
 
-// ── Existing chart DTOs (unchanged) ──────────────────────────────────────────
-
 data class YahooChartResponseDto(
     @Json(name = "chart") val chart: YahooChartDto
 )
@@ -25,17 +23,6 @@ data class YahooIndicatorsDto(
 data class YahooQuoteDataDto(
     @Json(name = "close") val close: List<Double?>
 )
-
-// ── v7/finance/quote — real-time quote + profile + metrics in one call ────────
-/*
-    This single endpoint replaces:
-      - Finnhub /quote       (price, % change)
-      - Finnhub /stock/profile2  (name, exchange, industry)
-      - Finnhub /stock/metric    (52W high/low, P/E, beta, market cap)
-
-    Pass comma-separated symbols: symbols=AAPL,MSFT,NVDA
-    Returns all in one response — massive reduction in API calls.
-*/
 
 data class YahooQuoteResponseDto(
     @Json(name = "quoteResponse") val quoteResponse: YahooQuoteResponseWrapper
@@ -61,16 +48,6 @@ data class YahooStockQuoteDto(
     @Json(name = "industry")                    val industry: String?,
     @Json(name = "sector")                      val sector: String?
 )
-
-// ── v1/finance/search — symbol search + news ─────────────────────────────────
-/*
-    One endpoint handles both:
-      1. Symbol search: set quotesCount=10, newsCount=0
-      2. News fetch:    set quotesCount=0,  newsCount=20
-
-    For general market news, search for "stock market"
-    For stock-specific news, search for the symbol
-*/
 
 data class YahooSearchResponseDto(
     @Json(name = "quotes") val quotes: List<YahooSearchQuoteDto>?,

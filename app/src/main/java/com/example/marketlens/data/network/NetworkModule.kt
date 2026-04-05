@@ -13,18 +13,12 @@ object NetworkModule {
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
-    /*
-        Yahoo Finance requires a browser-like User-Agent header.
-        Without it, requests return 403 or empty responses.
-        This interceptor attaches it to every request automatically.
-    */
     private val yahooClient = OkHttpClient.Builder()
         .addInterceptor(Interceptor { chain ->
             val request = chain.request().newBuilder()
-                .addHeader(
-                    "User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                )
+                .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+                .addHeader("Accept", "application/json")
+                .addHeader("Connection", "keep-alive")
                 .build()
             chain.proceed(request)
         })
