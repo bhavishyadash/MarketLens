@@ -2,6 +2,7 @@ package com.example.marketlens.data.network
 
 import com.example.marketlens.data.network.dto.YahooChartResponseDto
 import com.example.marketlens.data.network.dto.YahooQuoteResponseDto
+import com.example.marketlens.data.network.dto.YahooQuoteSummaryResponseDto
 import com.example.marketlens.data.network.dto.YahooSearchResponseDto
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -20,6 +21,12 @@ interface YahooFinanceApi {
     suspend fun getQuotes(
         @Query("symbols") symbols: String
     ): YahooQuoteResponseDto
+
+    @GET("v10/finance/quoteSummary/{symbol}")
+    suspend fun getQuoteSummary(
+        @Path("symbol") symbol: String,
+        @Query("modules") modules: String = "summaryDetail,assetProfile,defaultKeyStatistics,price"
+    ): YahooQuoteSummaryResponseDto
 
     @GET("v1/finance/search")
     suspend fun search(

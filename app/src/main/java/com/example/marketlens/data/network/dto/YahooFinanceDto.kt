@@ -58,6 +58,47 @@ data class YahooStockQuoteDto(
     @Json(name = "sector")                      val sector: String?
 )
 
+data class YahooQuoteSummaryResponseDto(
+    @Json(name = "quoteSummary") val quoteSummary: YahooQuoteSummaryWrapper
+)
+
+data class YahooQuoteSummaryWrapper(
+    @Json(name = "result") val result: List<YahooQuoteSummaryResultDto>?,
+    @Json(name = "error")  val error: Any?
+)
+
+data class YahooQuoteSummaryResultDto(
+    @Json(name = "summaryDetail")        val summaryDetail: YahooSummaryDetailDto?,
+    @Json(name = "defaultKeyStatistics") val defaultKeyStatistics: YahooDefaultKeyStatisticsDto?,
+    @Json(name = "assetProfile")         val assetProfile: YahooAssetProfileDto?,
+    @Json(name = "price")                val price: YahooPriceDto?
+)
+
+data class YahooSummaryDetailDto(
+    @Json(name = "marketCap")        val marketCap: YahooValueDto?,
+    @Json(name = "trailingPE")       val trailingPE: YahooValueDto?,
+    @Json(name = "fiftyTwoWeekHigh") val fiftyTwoWeekHigh: YahooValueDto?,
+    @Json(name = "fiftyTwoWeekLow")  val fiftyTwoWeekLow: YahooValueDto?
+)
+
+data class YahooDefaultKeyStatisticsDto(
+    @Json(name = "beta") val beta: YahooValueDto?
+)
+
+data class YahooAssetProfileDto(
+    @Json(name = "industry") val industry: String?,
+    @Json(name = "sector")   val sector: String?
+)
+
+data class YahooPriceDto(
+    @Json(name = "exchangeName") val exchangeName: String?
+)
+
+data class YahooValueDto(
+    @Json(name = "raw") val raw: Double?,
+    @Json(name = "fmt") val fmt: String?
+)
+
 data class YahooSearchResponseDto(
     @Json(name = "quotes") val quotes: List<YahooSearchQuoteDto>?,
     @Json(name = "news")   val news: List<YahooNewsItemDto>?

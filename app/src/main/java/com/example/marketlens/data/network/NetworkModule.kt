@@ -25,7 +25,7 @@ object NetworkModule {
         .build()
 
     val yahooFinanceApi: YahooFinanceApi = Retrofit.Builder()
-        .baseUrl("https://query1.finance.yahoo.com/")
+        .baseUrl("https://query2.finance.yahoo.com/")
         .client(yahooClient)
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
