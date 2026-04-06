@@ -121,10 +121,14 @@ fun StockDetailScreen(viewModel: StockDetailViewModel, onBack: () -> Unit) {
                             }
                             state.profile != null -> KeyStatsContent(state.profile!!)
                             else -> {
-                                StatRow("Market Cap", "—")
-                                StatRow("P/E Ratio",  "—")
-                                StatRow("52W High",   "—")
-                                StatRow("52W Low",    "—")
+                                if (state.profileError != null) {
+                                    Text(state.profileError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                                } else {
+                                    StatRow("Market Cap", "—")
+                                    StatRow("P/E Ratio",  "—")
+                                    StatRow("52W High",   "—")
+                                    StatRow("52W Low",    "—")
+                                }
                             }
                         }
                     }

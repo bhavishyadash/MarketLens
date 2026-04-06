@@ -97,25 +97,35 @@ class RealMarketRepository(
 
     override suspend fun getStockProfile(symbol: String): ApiResult<StockProfile> {
         return try {
-            val quoteRes = getQuote(symbol)
-            if (quoteRes is ApiResult.Error) return ApiResult.Error(quoteRes.message)
-            val q = (quoteRes as ApiResult.Success).data
+            val response = yahoo.getQuotes(symbol)
+            val dto = response.quoteResponse.result?.firstOrNull()
+                ?: return ApiResult.Error("No profile data for $symbol")
 
             ApiResult.Success(
                 StockProfile(
                     symbol             = symbol,
-                    name               = q.name,
-                    exchange           = "N/A",
-                    industry           = "N/A",
-                    marketCapFormatted = "N/A",
-                    week52High         = null,
-                    week52Low          = null,
-                    peRatio            = null,
-                    beta               = null
+                    name               = dto.longName ?: dto.shortName ?: symbol,
+                    exchange           = dto.fullExchangeName ?: "N/A",
+                    industry           = dto.industry ?: dto.sector ?: "N/A",
+                    marketCapFormatted = formatMarketCap(dto.marketCap),
+                    week52High         = dto.fiftyTwoWeekHigh,
+                    week52Low          = dto.fiftyTwoWeekLow,
+                    peRatio            = dto.trailingPE,
+                    beta               = dto.beta
                 )
             )
         } catch (e: Exception) {
             ApiResult.Error("Profile error ($symbol): ${e.message}", e)
+        }
+    }
+
+    private fun formatMarketCap(marketCapBytes: Long?): String {
+        if (marketCapBytes == null) return "N/A"
+        return when {
+            marketCapBytes >= 1_000_000_000_000L -> "$%.2fT".format(marketCapBytes / 1_000_000_000_000.0)
+            marketCapBytes >= 1_000_000_000L     -> "$%.1fB".format(marketCapBytes / 1_000_000_000.0)
+            marketCapBytes >= 1_000_000L         -> "$%.1fM".format(marketCapBytes / 1_000_000.0)
+            else                                 -> "$$marketCapBytes"
         }
     }
 }

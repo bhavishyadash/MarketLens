@@ -39,7 +39,6 @@ class FirestoreNewsRepository(
                 return ApiResult.Success(articles)
             }
 
-            // Fetch general market news from Yahoo Finance search
             val response = yahoo.search(
                 query        = "stock market today",
                 quotesCount  = 0,
@@ -76,7 +75,6 @@ class FirestoreNewsRepository(
                 return ApiResult.Success(articles)
             }
 
-            // Fetch stock-specific news from Yahoo Finance search
             val response = yahoo.search(
                 query       = symbol,
                 quotesCount = 0,
@@ -135,7 +133,6 @@ class FirestoreNewsRepository(
     }
 
     private fun YahooNewsItemDto.toDomain(symbol: String) = NewsArticle(
-        // Yahoo uses uuid strings — hash to Long for our id field
         id          = uuid.hashCode().toLong(),
         headline    = title,
         source      = publisher ?: "Yahoo Finance",

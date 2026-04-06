@@ -31,7 +31,6 @@ import com.example.marketlens.viewmodel.PortfolioViewModel
 fun PortfolioScreen(viewModel: PortfolioViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
 
-    // Silently refresh watchlist dropdown every time user navigates here
     LaunchedEffect(Unit) {
         viewModel.onScreenVisible()
     }
@@ -212,8 +211,8 @@ private fun PortfolioValueCard(currentValue: Double, totalGainLoss: Double, tota
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), Arrangement.spacedBy(6.dp)) {
             Text("Portfolio Value", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${"$%.2f".format(currentValue)}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("$gainSign${"$%.2f".format(totalGainLoss)} ($gainSign${"%.2f".format(totalGainLossPct)}%)", color = gainColor, style = MaterialTheme.typography.bodyMedium)
+            Text("$%.2f".format(currentValue), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("$gainSign$%.2f ($gainSign%.2f%)".format(totalGainLoss, totalGainLossPct), color = gainColor, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
@@ -229,8 +228,8 @@ private fun HoldingRow(snapshot: HoldingSnapshot, onDelete: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("${"$%.2f".format(snapshot.currentValue)}", style = MaterialTheme.typography.bodyMedium)
-            Text("$gainSign${"%.2f".format(snapshot.gainLossPct)}%", style = MaterialTheme.typography.bodySmall, color = gainColor)
+            Text("$%.2f".format(snapshot.currentValue), style = MaterialTheme.typography.bodyMedium)
+            Text("$gainSign%.2f%%".format(snapshot.gainLossPct), style = MaterialTheme.typography.bodySmall, color = gainColor)
         }
         IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
@@ -247,10 +246,10 @@ private fun SimulationResultCard(simulation: AnalyticsResult, currentValue: Doub
     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Results — $horizonLabel", style = MaterialTheme.typography.titleSmall)
-        SimRow("Target Portfolio Value", "${"$%.2f".format(targetValue)}", null)
-        SimRow("Historical Probability", "${"%.0f".format(simulation.probabilityPct)}%", probColor)
+        SimRow("Target Portfolio Value", "$%.2f".format(targetValue), null)
+        SimRow("Historical Probability", "%.0f%%".format(simulation.probabilityPct), probColor)
         simulation.medianDays?.let { weeks -> SimRow("Median Weeks to Target", "$weeks weeks", null) }
-        simulation.maxDrawdownPct?.let { drawdown -> SimRow("Max Drawdown Risk", "${"%.1f".format(drawdown)}%", PriceDown) }
+        simulation.maxDrawdownPct?.let { drawdown -> SimRow("Max Drawdown Risk", "%.1f%%".format(drawdown), PriceDown) }
         SimRow("Data Points Used", "${simulation.dataPointsUsed} weekly snapshots", null)
         Text("Based on blended historical portfolio performance. Past patterns do not guarantee future results. This is educational only.",
             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,

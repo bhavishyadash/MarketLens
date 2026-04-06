@@ -6,8 +6,8 @@ data class PortfolioResult(
     val totalGainLossPct:   Double,
     val holdings:           List<HoldingSnapshot>,
     val simulation:         AnalyticsResult?,
-    val historicalGainPct:  Double = 0.0,  // actual 2Y portfolio gain from history
-    val scaledTargetPct:    Double = 0.0   // target scaled to the chosen horizon
+    val historicalGainPct:  Double = 0.0,
+    val scaledTargetPct:    Double = 0.0
 )
 
 data class HoldingSnapshot(
