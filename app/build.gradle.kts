@@ -22,11 +22,7 @@ android {
         versionCode   = 1
         versionName   = "1.0"
 
-        buildConfigField(
-            "String",
-            "FINNHUB_API_KEY",
-            "\"${localProps.getProperty("FINNHUB_API_KEY", "")}\""
-        )
+
     }
 
     buildFeatures {

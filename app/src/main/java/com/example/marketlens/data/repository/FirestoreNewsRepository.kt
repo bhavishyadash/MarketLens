@@ -3,20 +3,17 @@ package com.example.marketlens.data.repository
 import com.example.marketlens.data.firebase.FirebaseModule
 import com.example.marketlens.data.model.NewsArticle
 import com.example.marketlens.data.network.ApiResult
-import com.example.marketlens.data.network.MarketApi
-import com.example.marketlens.data.network.dto.NewsArticleDto
+import com.example.marketlens.data.network.YahooFinanceApi
+import com.example.marketlens.data.network.dto.YahooNewsItemDto
 import com.example.marketlens.util.SectorMapper
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.CollectionReference
+import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 class FirestoreNewsRepository(
-    private val api: MarketApi,
-    private val db: FirebaseFirestore = FirebaseModule.firestore
+    private val yahoo: YahooFinanceApi,
+    private val db:    FirebaseFirestore = FirebaseModule.firestore
 ) : NewsRepository {
 
     companion object {
@@ -33,8 +30,7 @@ class FirestoreNewsRepository(
 
             val cached = collectionRef
                 .whereGreaterThan("cachedAt", System.currentTimeMillis() - CACHE_DURATION_MS)
-                .get()
-                .await()
+                .get().await()
 
             if (!cached.isEmpty) {
                 val articles = cached.documents
@@ -43,10 +39,16 @@ class FirestoreNewsRepository(
                 return ApiResult.Success(articles)
             }
 
-            val dtos = api.getMarketNews("general")
-            if (dtos.isEmpty()) return ApiResult.Error("No news articles available right now")
+            val response = yahoo.search(
+                query        = "stock market today",
+                quotesCount  = 0,
+                newsCount    = 25
+            )
 
-            val articles = dtos.map { it.toDomain(symbol = "") }
+            val items = response.news ?: return ApiResult.Error("No news available")
+            if (items.isEmpty()) return ApiResult.Error("No news articles available right now")
+
+            val articles = items.map { it.toDomain(symbol = "") }
             saveToFirestore(collectionRef, articles)
 
             ApiResult.Success(articles.sortedByDescending { it.publishedAt })
@@ -64,8 +66,7 @@ class FirestoreNewsRepository(
 
             val cached = collectionRef
                 .whereGreaterThan("cachedAt", System.currentTimeMillis() - CACHE_DURATION_MS)
-                .get()
-                .await()
+                .get().await()
 
             if (!cached.isEmpty) {
                 val articles = cached.documents
@@ -74,14 +75,16 @@ class FirestoreNewsRepository(
                 return ApiResult.Success(articles)
             }
 
-            val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-            val toDate    = formatter.format(Date())
-            val fromDate  = formatter.format(Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L))
+            val response = yahoo.search(
+                query       = symbol,
+                quotesCount = 0,
+                newsCount   = 20
+            )
 
-            val dtos = api.getCompanyNews(symbol, fromDate, toDate)
-            if (dtos.isEmpty()) return ApiResult.Error("No recent news found for $symbol")
+            val items = response.news ?: return ApiResult.Error("No recent news found for $symbol")
+            if (items.isEmpty()) return ApiResult.Error("No recent news found for $symbol")
 
-            val articles = dtos.take(20).map { it.toDomain(symbol = symbol) }
+            val articles = items.take(20).map { it.toDomain(symbol = symbol) }
             saveToFirestore(collectionRef, articles)
 
             ApiResult.Success(articles.sortedByDescending { it.publishedAt })
@@ -91,10 +94,7 @@ class FirestoreNewsRepository(
         }
     }
 
-    private suspend fun saveToFirestore(
-        collectionRef: CollectionReference,
-        articles: List<NewsArticle>
-    ) {
+    private suspend fun saveToFirestore(collectionRef: CollectionReference, articles: List<NewsArticle>) {
         val batch = db.batch()
         articles.forEach { article ->
             val docRef = collectionRef.document(article.id.toString())
@@ -129,20 +129,18 @@ class FirestoreNewsRepository(
                 symbol      = getString("symbol") ?: "",
                 sector      = getString("sector")
             )
-        } catch (e: Exception) {
-            null
-        }
+        } catch (e: Exception) { null }
     }
 
-    private fun NewsArticleDto.toDomain(symbol: String) = NewsArticle(
-        id          = id,
-        headline    = headline,
-        source      = source,
-        summary     = summary,
-        url         = url,
-        imageUrl    = image,
-        publishedAt = datetime,
+    private fun YahooNewsItemDto.toDomain(symbol: String) = NewsArticle(
+        id          = uuid.hashCode().toLong(),
+        headline    = title,
+        source      = publisher ?: "Yahoo Finance",
+        summary     = summary ?: "",
+        url         = link ?: "",
+        imageUrl    = "",
+        publishedAt = publishedAt ?: 0L,
         symbol      = symbol,
-        sector      = SectorMapper.map(headline)
+        sector      = SectorMapper.map(title)
     )
 }

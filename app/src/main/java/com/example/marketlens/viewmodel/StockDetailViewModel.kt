@@ -37,8 +37,6 @@ class StockDetailViewModel(
 
     init { loadAll(symbol, Timeframe.ONE_MONTH) }
 
-    // ── Watchlist toggle ──────────────────────────────────────────────────────
-
     fun onToggleWatchlist() {
         viewModelScope.launch {
             val current = _state.value.isInWatchlist
@@ -46,13 +44,9 @@ class StockDetailViewModel(
             else watchlistRepo.addSymbol(symbol)
             _state.value = _state.value.copy(isInWatchlist = !current)
 
-            // Broadcast to all listeners — Watchlist, Dashboard, Portfolio
-            // will silently re-fetch their symbol lists automatically
             AppContainer.notifyWatchlistChanged()
         }
     }
-
-    // ── Alert ─────────────────────────────────────────────────────────────────
 
     fun onAlertPriceChanged(input: String) {
         val filtered = input.filter { it.isDigit() || it == '.' }
@@ -73,14 +67,10 @@ class StockDetailViewModel(
         }
     }
 
-    // ── Timeframe ─────────────────────────────────────────────────────────────
-
     fun onTimeframeSelected(timeframe: Timeframe) {
         _state.value = _state.value.copy(selectedTimeframe = timeframe, isCandleLoading = true, candleError = null)
         loadCandle(symbol, timeframe)
     }
-
-    // ── Simulator ─────────────────────────────────────────────────────────────
 
     fun onTargetPriceChanged(input: String) {
         val filtered = input.filter { it.isDigit() || it == '.' }
@@ -143,8 +133,6 @@ class StockDetailViewModel(
             }
         }
     }
-
-    // ── Initial load ──────────────────────────────────────────────────────────
 
     private fun loadAll(symbol: String, timeframe: Timeframe) {
         _state.value = StockDetailState(isLoading = true)

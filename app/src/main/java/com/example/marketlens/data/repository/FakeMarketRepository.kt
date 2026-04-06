@@ -9,18 +9,22 @@ import com.example.marketlens.data.network.ApiResult
 class FakeMarketRepository : MarketRepository {
 
     private val fakeData = listOf(
-        StockQuote("AAPL",  "Apple Inc.",  187.23,  1.12),
-        StockQuote("MSFT",  "Microsoft",   412.10, -0.38),
-        StockQuote("NVDA",  "NVIDIA",      890.22,  2.41),
-        StockQuote("TSLA",  "Tesla",       242.88, -3.72),
-        StockQuote("AMZN",  "Amazon",      156.44,  0.65),
-        StockQuote("GOOGL", "Alphabet",    141.88,  0.54),
-        StockQuote("META",  "Meta",        355.70, -0.92)
+        StockQuote("AAPL",  "Apple Inc.",        187.23,  1.12),
+        StockQuote("MSFT",  "Microsoft",          412.10, -0.38),
+        StockQuote("NVDA",  "NVIDIA",             890.22,  2.41),
+        StockQuote("TSLA",  "Tesla",              242.88, -3.72),
+        StockQuote("AMZN",  "Amazon",             156.44,  0.65),
+        StockQuote("GOOGL", "Alphabet",           141.88,  0.54),
+        StockQuote("META",  "Meta",               355.70, -0.92),
+        StockQuote("LMT",   "Lockheed Martin",    450.00,  0.80),
+        StockQuote("NOC",   "Northrop Grumman",   480.00,  0.45),
+        StockQuote("JPM",   "JPMorgan Chase",     195.00,  0.30)
     ).associateBy { it.symbol }
 
     override suspend fun getQuote(symbol: String): ApiResult<StockQuote> {
         val quote = fakeData[symbol]
-        return if (quote != null) ApiResult.Success(quote) else ApiResult.Error("No fake data for $symbol")
+        return if (quote != null) ApiResult.Success(quote)
+        else ApiResult.Error("No fake data for $symbol")
     }
 
     override suspend fun searchSymbols(query: String): ApiResult<List<SearchResult>> {
@@ -41,7 +45,7 @@ class FakeMarketRepository : MarketRepository {
                 name               = fakeData[symbol]?.name ?: symbol,
                 exchange           = "NASDAQ",
                 industry           = "Technology",
-                marketCapFormatted = "$2.80T",
+                marketCapFormatted = "\$2.80T",
                 week52High         = 199.62,
                 week52Low          = 124.17,
                 peRatio            = 28.5,
