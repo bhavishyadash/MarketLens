@@ -21,16 +21,16 @@ class RealMarketRepository(
                 ?: return ApiResult.Error("No data for $symbol")
 
             val meta = result.meta
-            val price = meta?.regularMarketPrice 
+            val price = meta.regularMarketPrice 
                 ?: result.indicators.quote.firstOrNull()?.close?.lastNotNull()
                 ?: return ApiResult.Error("No price for $symbol")
 
-            val prevClose = meta?.chartPreviousClose
+            val prevClose = meta.previousClose
             val percentChange = if (prevClose != null && prevClose != 0.0) {
                 ((price - prevClose) / prevClose) * 100.0
             } else 0.0
 
-            val name = meta?.longName ?: meta?.shortName ?: symbol
+            val name = meta.longName ?: meta.shortName ?: symbol
             
             val quote = StockQuote(symbol, name, price, percentChange)
             QuoteCache.put(quote)
@@ -97,25 +97,30 @@ class RealMarketRepository(
 
     override suspend fun getStockProfile(symbol: String): ApiResult<StockProfile> {
         return try {
-            val response = yahoo.getQuotes(symbol)
-            val dto = response.quoteResponse.result?.firstOrNull()
-                ?: return ApiResult.Error("No profile data for $symbol")
+            val response = yahoo.getChart(symbol, "1d", "1y")
+            val result   = response.chart.result?.firstOrNull()
+                ?: return ApiResult.Error("No data for $symbol")
+
+            val meta = result.meta
+
+            android.util.Log.d("YAHOO_PROFILE", "meta: $meta")
 
             ApiResult.Success(
                 StockProfile(
                     symbol             = symbol,
-                    name               = dto.longName ?: dto.shortName ?: symbol,
-                    exchange           = dto.fullExchangeName ?: "N/A",
-                    industry           = dto.industry ?: dto.sector ?: "N/A",
-                    marketCapFormatted = formatMarketCap(dto.marketCap),
-                    week52High         = dto.fiftyTwoWeekHigh,
-                    week52Low          = dto.fiftyTwoWeekLow,
-                    peRatio            = dto.trailingPE,
-                    beta               = dto.beta
+                    name               = meta.longName ?: meta.shortName ?: symbol,
+                    exchange           = meta.exchangeName ?: "N/A",
+                    industry           = "N/A",
+                    marketCapFormatted = "N/A",
+                    week52High         = meta.fiftyTwoWeekHigh,
+                    week52Low          = meta.fiftyTwoWeekLow,
+                    peRatio            = null,
+                    beta               = null
                 )
             )
         } catch (e: Exception) {
-            ApiResult.Error("Profile error ($symbol): ${e.message}", e)
+            android.util.Log.e("YAHOO_PROFILE", "Exception: ${e.message}", e)
+            ApiResult.Error("Could not load profile for $symbol: ${e.message}", e)
         }
     }
 

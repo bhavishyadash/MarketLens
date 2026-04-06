@@ -19,14 +19,16 @@ interface YahooFinanceApi {
 
     @GET("v7/finance/quote")
     suspend fun getQuotes(
-        @Query("symbols") symbols: String
+        @Query("symbols") symbols: String,
+        @Query("fields")  fields: String = "symbol,shortName,longName,regularMarketPrice,regularMarketChangePercent,marketCap,fiftyTwoWeekHigh,fiftyTwoWeekLow,trailingPE,beta,fullExchangeName,industry,sector"
     ): YahooQuoteResponseDto
 
     @GET("v10/finance/quoteSummary/{symbol}")
     suspend fun getQuoteSummary(
-        @Path("symbol") symbol: String,
-        @Query("modules") modules: String = "summaryDetail,assetProfile,defaultKeyStatistics,price"
+        @Path("symbol")  symbol: String,
+        @Query("modules") modules: String = "summaryProfile,defaultKeyStatistics,financialData"
     ): YahooQuoteSummaryResponseDto
+
 
     @GET("v1/finance/search")
     suspend fun search(

@@ -12,17 +12,21 @@ data class YahooChartDto(
 )
 
 data class YahooChartResultDto(
-    @Json(name = "meta")       val meta: YahooChartMetaDto?,
+    @Json(name = "meta")       val meta: YahooChartMetaDto,
     @Json(name = "timestamp")  val timestamps: List<Long>?,
     @Json(name = "indicators") val indicators: YahooIndicatorsDto
 )
 
 data class YahooChartMetaDto(
-    @Json(name = "symbol")             val symbol: String,
-    @Json(name = "chartPreviousClose") val chartPreviousClose: Double?,
+    @Json(name = "symbol")           val symbol: String?,
+    @Json(name = "shortName")        val shortName: String?,
+    @Json(name = "longName")         val longName: String?,
+    @Json(name = "exchangeName")     val exchangeName: String?,
+    @Json(name = "currency")         val currency: String?,
+    @Json(name = "fiftyTwoWeekHigh") val fiftyTwoWeekHigh: Double?,
+    @Json(name = "fiftyTwoWeekLow")  val fiftyTwoWeekLow: Double?,
     @Json(name = "regularMarketPrice") val regularMarketPrice: Double?,
-    @Json(name = "shortName")          val shortName: String?,
-    @Json(name = "longName")           val longName: String?
+    @Json(name = "chartPreviousClose") val previousClose: Double?
 )
 
 data class YahooIndicatorsDto(
@@ -119,4 +123,23 @@ data class YahooNewsItemDto(
     @Json(name = "link")                val link: String?,
     @Json(name = "providerPublishTime") val publishedAt: Long?,
     @Json(name = "summary")             val summary: String?
+)
+data class YahooSummaryProfileDto(
+    @Json(name = "industry") val industry: String?,
+    @Json(name = "sector")   val sector: String?
+)
+
+data class YahooKeyStatsDto(
+    @Json(name = "beta")           val beta: YahooRawValue?,
+    @Json(name = "trailingEps")    val trailingEps: YahooRawValue?,
+    @Json(name = "52WeekChange")   val weekChange52: YahooRawValue?
+)
+
+data class YahooFinancialDataDto(
+    @Json(name = "currentPrice")   val currentPrice: YahooRawValue?,
+    @Json(name = "targetMeanPrice") val targetMeanPrice: YahooRawValue?
+)
+
+data class YahooRawValue(
+    @Json(name = "raw") val raw: Double?
 )
