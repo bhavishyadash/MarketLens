@@ -9,5 +9,6 @@ interface SignalRepository {
     suspend fun markRead(signalId: String): ApiResult<Unit>
     suspend fun getSeenArticleIds(): Set<Long>
     suspend fun addSeenArticleId(articleId: Long)
+    suspend fun addSeenArticleIds(articleIds: List<Long>)
     suspend fun deleteSignal(signalId: String): ApiResult<Unit>
 }
