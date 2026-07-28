@@ -12,9 +12,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.marketlens.ui.theme.MonoFamily
 import com.example.marketlens.ui.theme.PriceDown
 import com.example.marketlens.ui.theme.PriceUp
-
+import com.example.marketlens.ui.theme.TerminalBorder
 
 @Composable
 fun StockChart(
@@ -22,17 +23,20 @@ fun StockChart(
     modifier: Modifier = Modifier
 ) {
     if (prices.size < 2) {
-        Box(modifier.height(180.dp))
+        Box(modifier.height(200.dp))
         return
     }
 
     val isPositive = prices.last() >= prices.first()
     val lineColor  = if (isPositive) PriceUp else PriceDown
+    val gridColor  = TerminalBorder
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     val textStyle = TextStyle(
-        fontSize = 10.sp,
-        color    = labelColor
+        fontFamily    = MonoFamily,
+        fontSize      = 9.sp,
+        color         = labelColor,
+        letterSpacing = 0.5.sp
     )
 
     val minPrice   = prices.min()
@@ -44,18 +48,39 @@ fun StockChart(
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(200.dp)
     ) {
-        val width      = size.width
-        val height     = size.height
+        val width  = size.width
+        val height = size.height
 
         if (width <= 0f || height <= 0f) return@Canvas
 
-        val labelAreaWidth = 48f
+        val labelAreaWidth = 52f
         val chartWidth     = width - labelAreaWidth
-        val paddingTop     = 12f
+        val paddingTop     = 14f
         val paddingBot     = 20f
         val chartH         = height - paddingTop - paddingBot
+
+        // Dotted horizontal grid (5 lines) — terminal chart chrome
+        val dashEffect = PathEffect.dashPathEffect(floatArrayOf(3f, 6f), 0f)
+        for (i in 0..4) {
+            val y = paddingTop + chartH * (i / 4f)
+            drawLine(
+                color = gridColor,
+                start = Offset(0f, y),
+                end   = Offset(chartWidth, y),
+                strokeWidth = 1f,
+                pathEffect  = dashEffect
+            )
+        }
+
+        // Vertical guide at the right edge
+        drawLine(
+            color = gridColor,
+            start = Offset(chartWidth, paddingTop),
+            end   = Offset(chartWidth, paddingTop + chartH),
+            strokeWidth = 1f
+        )
 
         fun priceToOffset(index: Int, price: Double): Offset {
             val x          = (index.toFloat() / (prices.size - 1)) * chartWidth
@@ -67,18 +92,18 @@ fun StockChart(
         val points = prices.mapIndexed { i, price -> priceToOffset(i, price) }
 
         val fillPath = Path().apply {
-            moveTo(points.first().x, height)
+            moveTo(points.first().x, paddingTop + chartH)
             points.forEach { lineTo(it.x, it.y) }
-            lineTo(points.last().x, height)
+            lineTo(points.last().x, paddingTop + chartH)
             close()
         }
 
         drawPath(
             path  = fillPath,
             brush = Brush.verticalGradient(
-                colors = listOf(lineColor.copy(alpha = 0.30f), Color.Transparent),
+                colors = listOf(lineColor.copy(alpha = 0.35f), Color.Transparent),
                 startY = paddingTop,
-                endY   = height
+                endY   = paddingTop + chartH
             )
         )
 
@@ -90,18 +115,20 @@ fun StockChart(
         drawPath(
             path  = linePath,
             color = lineColor,
-            style = Stroke(width = 2.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            style = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
 
         val lastPoint = points.last()
-        drawCircle(color = lineColor,   radius = 5f,   center = lastPoint)
-        drawCircle(color = Color.White, radius = 2.5f, center = lastPoint)
+        // Glow ring — subtle neon
+        drawCircle(color = lineColor.copy(alpha = 0.25f), radius = 10f, center = lastPoint)
+        drawCircle(color = lineColor, radius = 4f, center = lastPoint)
+        drawCircle(color = Color.Black, radius = 1.5f, center = lastPoint)
 
         if (labelAreaWidth > 0f) {
-            val labelX = chartWidth + 4f
-            drawYLabel(textMeasurer, textStyle, "$%.0f".format(maxPrice), labelX, paddingTop)
-            drawYLabel(textMeasurer, textStyle, "$%.0f".format((minPrice + maxPrice) / 2), labelX, paddingTop + chartH / 2)
-            drawYLabel(textMeasurer, textStyle, "$%.0f".format(minPrice), labelX, paddingTop + chartH - 10f)
+            val labelX = chartWidth + 6f
+            drawYLabel(textMeasurer, textStyle, "%.2f".format(maxPrice), labelX, paddingTop)
+            drawYLabel(textMeasurer, textStyle, "%.2f".format((minPrice + maxPrice) / 2), labelX, paddingTop + chartH / 2)
+            drawYLabel(textMeasurer, textStyle, "%.2f".format(minPrice), labelX, paddingTop + chartH - 10f)
         }
     }
 }

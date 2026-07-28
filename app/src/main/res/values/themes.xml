@@ -7,8 +7,8 @@
         Now we use a dark background so the flash matches our dark UI.
     -->
     <style name="Theme.MarketLens" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">#0D0F14</item>
-        <item name="android:statusBarColor">#0D0F14</item>
-        <item name="android:navigationBarColor">#0D0F14</item>
+        <item name="android:windowBackground">#050505</item>
+        <item name="android:statusBarColor">#050505</item>
+        <item name="android:navigationBarColor">#050505</item>
     </style>
 </resources>

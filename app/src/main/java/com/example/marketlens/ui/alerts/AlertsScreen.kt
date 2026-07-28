@@ -15,8 +15,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.marketlens.data.model.AlertDirection
 import com.example.marketlens.data.model.PriceAlert
+import com.example.marketlens.ui.components.LoadingView
+import com.example.marketlens.ui.components.SectionLabel
+import com.example.marketlens.ui.components.TerminalCard
+import com.example.marketlens.ui.theme.Amber
+import com.example.marketlens.ui.theme.MonoFamily
 import com.example.marketlens.ui.theme.PriceDown
 import com.example.marketlens.ui.theme.PriceUp
+import com.example.marketlens.ui.theme.TextSecondary
 import com.example.marketlens.viewmodel.AlertsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -27,9 +33,7 @@ fun AlertsScreen(viewModel: AlertsViewModel = viewModel()) {
     val state by viewModel.state.collectAsState()
 
     when {
-        state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
+        state.isLoading -> LoadingView(label = "Loading alerts")
         state.errorMessage != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(state.errorMessage!!, color = MaterialTheme.colorScheme.error)
@@ -38,17 +42,20 @@ fun AlertsScreen(viewModel: AlertsViewModel = viewModel()) {
         }
         state.alerts.isEmpty() -> EmptyAlerts()
         else -> Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 14.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Text("Price Alerts", style = MaterialTheme.typography.titleLarge)
+                Column {
+                    SectionLabel("Alerts // Price Triggers")
+                    Text("Alerts", style = MaterialTheme.typography.displaySmall)
+                }
                 IconButton(onClick = { viewModel.refresh() }) { Icon(Icons.Filled.Refresh, "Refresh") }
             }
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(state.alerts, key = { it.id }) { alert ->
@@ -62,14 +69,10 @@ fun AlertsScreen(viewModel: AlertsViewModel = viewModel()) {
 @Composable
 private fun AlertCard(alert: PriceAlert, onDelete: () -> Unit) {
     val directionColor = if (alert.direction == AlertDirection.ABOVE) PriceUp else PriceDown
-    val directionLabel = if (alert.direction == AlertDirection.ABOVE) "Above" else "Below"
+    val directionLabel = if (alert.direction == AlertDirection.ABOVE) "ABOVE" else "BELOW"
+    val accent = if (alert.isTriggered) TextSecondary else directionColor
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (alert.isTriggered) MaterialTheme.colorScheme.surfaceVariant
-                             else MaterialTheme.colorScheme.surface
-        )
-    ) {
+    TerminalCard(accent = accent) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -79,17 +82,34 @@ private fun AlertCard(alert: PriceAlert, onDelete: () -> Unit) {
                 Icon(
                     imageVector = Icons.Filled.Notifications,
                     contentDescription = null,
-                    tint = if (alert.isTriggered) MaterialTheme.colorScheme.onSurfaceVariant else directionColor
+                    tint = accent
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(alert.symbol, style = MaterialTheme.typography.titleMedium)
-                    Text("$directionLabel ${"$%.2f".format(alert.targetPrice)}", style = MaterialTheme.typography.bodySmall, color = directionColor)
-                    Text(if (alert.isTriggered) "✓ Triggered" else "Active", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(SimpleDateFormat("MMM d, h:mm a", Locale.US).format(Date(alert.createdAt)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text       = alert.symbol,
+                        fontFamily = MonoFamily,
+                        style      = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text       = "$directionLabel  ${"$%.2f".format(alert.targetPrice)}",
+                        fontFamily = MonoFamily,
+                        style      = MaterialTheme.typography.bodySmall,
+                        color      = directionColor
+                    )
+                    Text(
+                        text  = if (alert.isTriggered) "✓ TRIGGERED" else "● ACTIVE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (alert.isTriggered) TextSecondary else Amber
+                    )
+                    Text(
+                        text  = SimpleDateFormat("MMM d, h:mm a", Locale.US).format(Date(alert.createdAt)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
                 }
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, "Delete alert", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Filled.Delete, "Delete alert", tint = TextSecondary)
             }
         }
     }
@@ -97,10 +117,14 @@ private fun AlertCard(alert: PriceAlert, onDelete: () -> Unit) {
 
 @Composable
 private fun EmptyAlerts() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("No price alerts", style = MaterialTheme.typography.titleMedium)
-            Text("Open any stock and set an alert from the detail screen", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+    Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("NO PRICE ALERTS", color = Amber, style = MaterialTheme.typography.labelLarge)
+            Text(
+                text  = "Open any stock and set an alert from the detail screen.",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
