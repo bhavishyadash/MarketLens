@@ -5,9 +5,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Delete
@@ -16,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,8 +27,17 @@ import com.example.marketlens.data.model.NewsSignal
 import com.example.marketlens.data.model.SignalStrength
 import com.example.marketlens.ui.components.ErrorView
 import com.example.marketlens.ui.components.LoadingView
+import com.example.marketlens.ui.components.SectionLabel
+import com.example.marketlens.ui.components.StatusPill
+import com.example.marketlens.ui.components.TerminalCard
+import com.example.marketlens.ui.theme.Amber
+import com.example.marketlens.ui.theme.Cyan
+import com.example.marketlens.ui.theme.MonoFamily
 import com.example.marketlens.ui.theme.PriceDown
 import com.example.marketlens.ui.theme.PriceUp
+import com.example.marketlens.ui.theme.TerminalBorder
+import com.example.marketlens.ui.theme.TerminalRaised
+import com.example.marketlens.ui.theme.TextSecondary
 import com.example.marketlens.viewmodel.NewsViewModel
 import com.example.marketlens.viewmodel.SignalsViewModel
 import java.text.SimpleDateFormat
@@ -43,16 +54,25 @@ fun NewsScreen(
     var selectedTab by remember { mutableStateOf(NewsTab.NEWS) }
 
     Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selectedTab.ordinal) {
+        TabRow(
+            selectedTabIndex = selectedTab.ordinal,
+            containerColor   = MaterialTheme.colorScheme.background,
+            contentColor     = Amber,
+            divider          = { HorizontalDivider(color = TerminalBorder) }
+        ) {
             Tab(
                 selected = selectedTab == NewsTab.NEWS,
                 onClick  = { selectedTab = NewsTab.NEWS },
-                text     = { Text("News") }
+                selectedContentColor = Amber,
+                unselectedContentColor = TextSecondary,
+                text = { Text("NEWS", style = MaterialTheme.typography.labelLarge) }
             )
             Tab(
                 selected = selectedTab == NewsTab.SIGNALS,
                 onClick  = { selectedTab = NewsTab.SIGNALS },
-                text     = { Text("Signals") }
+                selectedContentColor = Amber,
+                unselectedContentColor = TextSecondary,
+                text = { Text("SIGNALS", style = MaterialTheme.typography.labelLarge) }
             )
         }
 
@@ -75,20 +95,23 @@ private fun NewsContent(viewModel: NewsViewModel) {
     val state by viewModel.state.collectAsState()
 
     when {
-        state.isLoading -> LoadingView()
+        state.isLoading -> LoadingView(label = "Fetching newsflow")
         state.errorMessage != null -> ErrorView(message = state.errorMessage!!, onRetry = { viewModel.refresh() })
         state.articles.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("No articles available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("NO ARTICLES AVAILABLE", color = TextSecondary, style = MaterialTheme.typography.labelLarge)
         }
-        else -> Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), Arrangement.spacedBy(12.dp)) {
+        else -> Column(Modifier.fillMaxSize().padding(horizontal = 14.dp), Arrangement.spacedBy(12.dp)) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Text("Market News", style = MaterialTheme.typography.titleLarge)
+                Column {
+                    SectionLabel("Newsflow // Market")
+                    Text("News", style = MaterialTheme.typography.displaySmall)
+                }
                 IconButton(onClick = { viewModel.refresh() }) { Icon(Icons.Filled.Refresh, "Refresh") }
             }
             LazyColumn(
                 Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(state.articles, key = { it.id }) { NewsCard(it) }
@@ -102,34 +125,35 @@ private fun SignalsContent(viewModel: SignalsViewModel) {
     val state by viewModel.state.collectAsState()
 
     when {
-        state.isLoading -> LoadingView()
+        state.isLoading -> LoadingView(label = "Scanning news feed")
         state.errorMessage != null -> ErrorView(message = state.errorMessage!!, onRetry = { viewModel.refresh() })
-        state.signals.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(32.dp)
-            ) {
-                Text("No signals yet", style = MaterialTheme.typography.titleMedium)
+        state.signals.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("NO SIGNALS YET", color = Cyan, style = MaterialTheme.typography.labelLarge)
                 Text(
-                    "Signals are generated from news every 30 minutes.\nMake sure signals are enabled in Settings.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text  = "Signals are generated from news every 30 minutes.\nMake sure signals are enabled in Settings.",
+                    color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
         }
-        else -> Column(Modifier.fillMaxSize().padding(horizontal = 16.dp), Arrangement.spacedBy(12.dp)) {
+        else -> Column(Modifier.fillMaxSize().padding(horizontal = 14.dp), Arrangement.spacedBy(12.dp)) {
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
                 Column {
-                    Text("Market Signals", style = MaterialTheme.typography.titleLarge)
-                    Text("Derived from news — informational only", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    SectionLabel("Signals // Newsflow", accent = Cyan)
+                    Text("Signals", style = MaterialTheme.typography.displaySmall)
+                    Text(
+                        text  = "Derived from news — informational only",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = TextSecondary
+                    )
                 }
                 IconButton(onClick = { viewModel.refresh() }) { Icon(Icons.Filled.Refresh, "Refresh") }
             }
             LazyColumn(
                 Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(state.signals, key = { it.id }) { signal ->
@@ -146,23 +170,43 @@ private fun SignalsContent(viewModel: SignalsViewModel) {
 
 @Composable
 fun NewsCard(article: NewsArticle) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    TerminalCard(accent = Amber) {
         Column(Modifier.fillMaxWidth().padding(14.dp), Arrangement.spacedBy(8.dp)) {
-            article.sector?.let { sector ->
-                Surface(color = PriceUp.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
-                    Text(sector, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                        style = MaterialTheme.typography.labelSmall, color = PriceUp)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment     = Alignment.CenterVertically
+            ) {
+                article.sector?.let { sector ->
+                    StatusPill(sector, color = PriceUp)
                 }
+                Text(
+                    text       = article.source.uppercase(),
+                    fontFamily = MonoFamily,
+                    color      = TextSecondary,
+                    style      = MaterialTheme.typography.labelSmall
+                )
             }
-            Text(article.headline, style = MaterialTheme.typography.titleSmall, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            Text(
+                text     = article.headline,
+                style    = MaterialTheme.typography.titleSmall,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
             if (article.summary.isNotBlank()) {
-                Text(article.summary, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    text     = article.summary,
+                    style    = MaterialTheme.typography.bodySmall,
+                    color    = TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
-            Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween) {
-                Text(article.source, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(formatTimestamp(article.publishedAt), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Text(
+                text       = formatTimestamp(article.publishedAt).uppercase(),
+                fontFamily = MonoFamily,
+                style      = MaterialTheme.typography.labelSmall,
+                color      = TextSecondary
+            )
         }
     }
 }
@@ -171,48 +215,80 @@ fun NewsCard(article: NewsArticle) {
 private fun SignalCard(signal: NewsSignal, onDelete: () -> Unit, onRead: () -> Unit) {
     val strengthColor = when (signal.strength) {
         SignalStrength.HIGH   -> PriceDown
-        SignalStrength.MEDIUM -> Color(0xFFFFA726)
-        SignalStrength.LOW    -> MaterialTheme.colorScheme.onSurfaceVariant
+        SignalStrength.MEDIUM -> Amber
+        SignalStrength.LOW    -> TextSecondary
     }
-    val alpha = if (signal.isRead) 0.6f else 1f
+    val alpha = if (signal.isRead) 0.55f else 1f
 
-    Card(
-        onClick = { if (!signal.isRead) onRead() },
-        colors  = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), Arrangement.spacedBy(8.dp)) {
+    TerminalCard(accent = strengthColor) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.Top) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.AutoMirrored.Filled.TrendingUp, null, tint = strengthColor.copy(alpha = alpha), modifier = Modifier.size(18.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Surface(color = strengthColor.copy(alpha = 0.15f), shape = MaterialTheme.shapes.small) {
-                            Text(signal.strength.name, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall, color = strengthColor)
-                        }
-                        Surface(color = PriceUp.copy(alpha = 0.10f), shape = MaterialTheme.shapes.small) {
-                            Text(signal.sector, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                style = MaterialTheme.typography.labelSmall, color = PriceUp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.TrendingUp, null,
+                        tint     = strengthColor.copy(alpha = alpha),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    StatusPill(text = signal.strength.name, color = strengthColor)
+                    StatusPill(text = signal.sector,        color = PriceUp)
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (!signal.isRead) {
+                        TextButton(onClick = onRead, contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)) {
+                            Text("MARK READ", color = Amber, style = MaterialTheme.typography.labelSmall)
                         }
                     }
-                }
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Filled.Delete, "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                    IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Filled.Delete, "Delete", tint = TextSecondary, modifier = Modifier.size(14.dp))
+                    }
                 }
             }
-            Text(signal.headline, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha))
-            Text(signal.reason, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha))
+            Text(
+                text     = signal.headline,
+                style    = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                color    = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+            )
+            Text(
+                text  = signal.reason,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary.copy(alpha = alpha)
+            )
             if (signal.affectedSymbols.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Your watchlist:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("HITS:", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
                     signal.affectedSymbols.forEach { symbol ->
-                        Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
-                            Text(symbol, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = MaterialTheme.typography.labelSmall)
-                        }
+                        Text(
+                            text       = symbol,
+                            fontFamily = MonoFamily,
+                            style      = MaterialTheme.typography.labelSmall,
+                            color      = MaterialTheme.colorScheme.onSurface,
+                            modifier   = Modifier
+                                .background(TerminalRaised, RoundedCornerShape(2.dp))
+                                .border(1.dp, TerminalBorder, RoundedCornerShape(2.dp))
+                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                        )
                     }
                 }
             }
-            Text(SimpleDateFormat("MMM d, h:mm a", Locale.US).format(Date(signal.detectedAt)),
-                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha))
+            Text(
+                text       = SimpleDateFormat("MMM d, h:mm a", Locale.US).format(Date(signal.detectedAt)),
+                fontFamily = MonoFamily,
+                style      = MaterialTheme.typography.labelSmall,
+                color      = TextSecondary.copy(alpha = alpha)
+            )
         }
     }
 }

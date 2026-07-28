@@ -1,25 +1,65 @@
 package com.example.marketlens.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.marketlens.ui.theme.Amber
+import com.example.marketlens.ui.theme.MonoFamily
+import com.example.marketlens.ui.theme.TerminalBorder
 
 @Composable
-fun LoadingView(modifier: Modifier = Modifier) {
+fun LoadingView(modifier: Modifier = Modifier, label: String = "LOADING MARKET DATA") {
+    val infinite = rememberInfiniteTransition(label = "loading-pulse")
+    val alpha by infinite.animateFloatAsState(
+        initialValue = 0.4f,
+        targetValue  = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "loading-alpha"
+    )
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CircularProgressIndicator(
+                color       = Amber,
+                strokeWidth = 2.dp,
+                modifier    = Modifier.size(28.dp)
+            )
+            Text(
+                text     = label.uppercase(),
+                color    = Amber.copy(alpha = alpha),
+                style    = MaterialTheme.typography.labelMedium
+            )
+        }
     }
 }
 
@@ -30,37 +70,52 @@ fun ErrorView(
     isOffline: Boolean = false,
     modifier:  Modifier = Modifier
 ) {
+    val errorCode = if (isOffline) "ERR/NETWORK_UNREACHABLE" else "ERR/DATA_UNAVAILABLE"
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(32.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier
+                .padding(32.dp)
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(3.dp))
+                .border(1.dp, TerminalBorder, RoundedCornerShape(3.dp))
+                .padding(24.dp)
         ) {
             Icon(
                 imageVector        = if (isOffline) Icons.Filled.CloudOff else Icons.Filled.ErrorOutline,
                 contentDescription = null,
-                modifier           = Modifier.size(48.dp),
-                tint               = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier           = Modifier.size(36.dp),
+                tint               = MaterialTheme.colorScheme.error
             )
             Text(
-                text      = if (isOffline) "No internet connection" else message,
-                color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                text       = errorCode,
+                fontFamily = MonoFamily,
+                color      = MaterialTheme.colorScheme.error,
+                style      = MaterialTheme.typography.labelLarge
+            )
+            Text(
+                text      = if (isOffline) "No connection to the market feed." else message,
+                color     = MaterialTheme.colorScheme.onSurface,
                 style     = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
             if (isOffline) {
                 Text(
-                    text      = "Check your connection and try again",
+                    text      = "Reconnect and retry to resume streaming.",
                     color     = MaterialTheme.colorScheme.onSurfaceVariant,
                     style     = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center
                 )
             }
             onRetry?.let {
-                Button(onClick = it) {
-                    Icon(Icons.Filled.Refresh, null, modifier = Modifier.size(16.dp))
+                OutlinedButton(
+                    onClick = it,
+                    border  = BorderStroke(1.dp, Amber),
+                    colors  = ButtonDefaults.outlinedButtonColors(contentColor = Amber)
+                ) {
+                    Icon(Icons.Filled.Refresh, null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Retry")
+                    Text("RETRY", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }

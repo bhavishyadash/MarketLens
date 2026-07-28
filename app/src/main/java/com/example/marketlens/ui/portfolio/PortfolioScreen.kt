@@ -1,7 +1,10 @@
 package com.example.marketlens.ui.portfolio
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,8 +25,16 @@ import com.example.marketlens.data.model.AnalyticsResult
 import com.example.marketlens.data.model.HoldingSnapshot
 import com.example.marketlens.ui.components.ErrorView
 import com.example.marketlens.ui.components.LoadingView
+import com.example.marketlens.ui.components.SectionLabel
+import com.example.marketlens.ui.components.TerminalCard
+import com.example.marketlens.ui.theme.Amber
+import com.example.marketlens.ui.theme.MonoFamily
 import com.example.marketlens.ui.theme.PriceDown
 import com.example.marketlens.ui.theme.PriceUp
+import com.example.marketlens.ui.theme.TerminalBlack
+import com.example.marketlens.ui.theme.TerminalBorder
+import com.example.marketlens.ui.theme.TerminalRaised
+import com.example.marketlens.ui.theme.TextSecondary
 import com.example.marketlens.viewmodel.PortfolioHorizon
 import com.example.marketlens.viewmodel.PortfolioViewModel
 
@@ -45,9 +56,12 @@ fun PortfolioScreen(viewModel: PortfolioViewModel = viewModel()) {
         ) {
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-                Text("Portfolio Simulator", style = MaterialTheme.typography.titleLarge)
+                Column {
+                    SectionLabel("Portfolio // Simulator")
+                    Text("Portfolio", style = MaterialTheme.typography.displaySmall)
+                }
                 IconButton(onClick = { viewModel.onShowForm() }) {
-                    Icon(Icons.Filled.Add, "Add holding", tint = PriceUp)
+                    Icon(Icons.Filled.Add, "Add holding", tint = Amber)
                 }
             }
 
@@ -209,11 +223,21 @@ private fun AddHoldingForm(
 private fun PortfolioValueCard(currentValue: Double, totalGainLoss: Double, totalGainLossPct: Double) {
     val gainColor = if (totalGainLoss >= 0) PriceUp else PriceDown
     val gainSign  = if (totalGainLoss >= 0) "+" else ""
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), Arrangement.spacedBy(6.dp)) {
-            Text("Portfolio Value", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("${"$%.2f".format(currentValue)}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text("$gainSign${"$%.2f".format(totalGainLoss)} ($gainSign${"%.2f".format(totalGainLossPct)}%)", color = gainColor, style = MaterialTheme.typography.bodyMedium)
+    TerminalCard(accent = gainColor) {
+        Column(Modifier.fillMaxWidth().padding(18.dp), Arrangement.spacedBy(6.dp)) {
+            SectionLabel("Portfolio // Value")
+            Text(
+                text       = "${"$%.2f".format(currentValue)}",
+                fontFamily = MonoFamily,
+                style      = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text       = "$gainSign${"$%.2f".format(totalGainLoss)} ($gainSign${"%.2f".format(totalGainLossPct)}%)",
+                fontFamily = MonoFamily,
+                color      = gainColor,
+                style      = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
@@ -224,15 +248,32 @@ private fun HoldingRow(snapshot: HoldingSnapshot, onDelete: () -> Unit) {
     val gainSign  = if (snapshot.gainLoss >= 0) "+" else ""
     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(snapshot.symbol, style = MaterialTheme.typography.titleMedium)
-            Text("${snapshot.shares} shares @ ${"$%.2f".format(snapshot.purchasePrice)}",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text       = snapshot.symbol,
+                fontFamily = MonoFamily,
+                style      = MaterialTheme.typography.titleMedium
+            )
+            Text(
+                text       = "${snapshot.shares} shares @ ${"$%.2f".format(snapshot.purchasePrice)}",
+                fontFamily = MonoFamily,
+                style      = MaterialTheme.typography.bodySmall,
+                color      = TextSecondary
+            )
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text("${"$%.2f".format(snapshot.currentValue)}", style = MaterialTheme.typography.bodyMedium)
-            Text("$gainSign${"%.2f".format(snapshot.gainLossPct)}%", style = MaterialTheme.typography.bodySmall, color = gainColor)
+            Text(
+                text       = "${"$%.2f".format(snapshot.currentValue)}",
+                fontFamily = MonoFamily,
+                style      = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text       = "$gainSign${"%.2f".format(snapshot.gainLossPct)}%",
+                fontFamily = MonoFamily,
+                style      = MaterialTheme.typography.bodySmall,
+                color      = gainColor
+            )
         }
-        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "Remove", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "Remove", tint = TextSecondary) }
     }
 }
 
@@ -268,16 +309,34 @@ private fun SimRow(label: String, value: String, valueColor: Color?) {
 
 @Composable
 private fun EmptyPortfolio(onAdd: () -> Unit) {
-    Box(Modifier.fillMaxWidth().height(300.dp), contentAlignment = Alignment.Center) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("No holdings yet", style = MaterialTheme.typography.titleMedium)
-            Text("Add stocks from your watchlist to simulate how your portfolio may perform",
-                color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
-            Button(onClick = onAdd) {
-                Icon(Icons.Filled.Add, null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Add First Holding")
+    Box(Modifier.fillMaxWidth().height(280.dp), contentAlignment = Alignment.Center) {
+        Column(
+            modifier = Modifier
+                .background(TerminalRaised, RoundedCornerShape(3.dp))
+                .border(1.dp, TerminalBorder, RoundedCornerShape(3.dp))
+                .padding(28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text("NO HOLDINGS TRACKED", color = Amber, style = MaterialTheme.typography.labelLarge)
+            Text(
+                text  = "Add stocks from your watchlist to simulate how your portfolio may perform.",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier  = Modifier.padding(horizontal = 8.dp)
+            )
+            Button(
+                onClick = onAdd,
+                shape   = RoundedCornerShape(3.dp),
+                colors  = ButtonDefaults.buttonColors(
+                    containerColor = Amber,
+                    contentColor   = TerminalBlack
+                )
+            ) {
+                Icon(Icons.Filled.Add, null, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("ADD FIRST HOLDING", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
