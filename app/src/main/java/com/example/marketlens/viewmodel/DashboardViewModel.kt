@@ -96,7 +96,6 @@ class DashboardViewModel(
                     topGainer        = topGainer,
                     topLoser         = topLoser,
                     watchlistPreview = watchlistPreview,
-                    recentAlerts     = emptyList(),
                     isLoading        = false
                 )
             }

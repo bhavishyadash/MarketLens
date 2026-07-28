@@ -4,12 +4,12 @@ MarketLens is a mobile-first finance insights app focused on
 stock market data, analytics, news, and user-defined alerts.
 
 ## Status
-🚧 Planning & UI mockups completed.
-Implementation starting soon.
+Feature-complete. See the top-level `README.md` for the full feature
+list, architecture overview, and screen-by-screen breakdown.
 
 ## Tech Stack
 - Kotlin
 - Jetpack Compose
 - MVVM Architecture
-- Firebase (Auth, Firestore)
-- Free-tier market & news APIs
+- Firebase (Auth, Firestore, Analytics)
+- Finnhub + Yahoo Finance (free-tier market & news APIs)

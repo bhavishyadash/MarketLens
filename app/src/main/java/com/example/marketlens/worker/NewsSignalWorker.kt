@@ -59,7 +59,7 @@ class NewsSignalWorker(
 
         signalRepo.saveSignals(signals)
 
-        articles.forEach { signalRepo.addSeenArticleId(it.id) }
+        signalRepo.addSeenArticleIds(articles.map { it.id })
 
         if (settings.notifyOnSignal) {
             signals.filter { it.strength == SignalStrength.HIGH || it.strength == SignalStrength.MEDIUM }

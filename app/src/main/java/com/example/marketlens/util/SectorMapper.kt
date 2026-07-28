@@ -15,7 +15,7 @@ object SectorMapper {
             "e-commerce", "target", "costco"),
         "Automotive"    to listOf("tesla", "electric vehicle", "ev", "ford", "gm",
             "auto", "car", "self-driving"),
-        "Real Estate"   to listOf("housing", "mortgage", "real estate", "reit",
+        "RealEstate"    to listOf("housing", "mortgage", "real estate", "reit",
             "home sales", "construction"),
         "Geopolitical"  to listOf("war", "sanction", "tariff", "trade", "china",
             "russia", "geopolit", "embargo")

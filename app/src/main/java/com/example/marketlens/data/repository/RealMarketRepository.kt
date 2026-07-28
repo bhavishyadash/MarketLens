@@ -98,17 +98,20 @@ class RealMarketRepository(
     }
 
     private suspend fun <T> retryWithBackoff(block: suspend () -> ApiResult<T>): ApiResult<T> {
-        var lastResult: ApiResult<T> = ApiResult.Error("Unknown error")
-        val delays = listOf(500L, 1000L)
-        for ((attempt, delayMs) in delays.withIndex()) {
-            return try {
-                block()
+        // Attempt up to 3 times with an exponential backoff between attempts.
+        val delaysBetweenAttempts = listOf(500L, 1000L)
+        var lastError: ApiResult<T> = ApiResult.Error("Unknown error")
+
+        for (attempt in 0..delaysBetweenAttempts.size) {
+            try {
+                return block()
             } catch (e: Exception) {
-                lastResult = ApiResult.Error("Network error: ${e.message}", e)
-                if (attempt < delays.lastIndex) delay(delayMs)
-                continue
+                lastError = ApiResult.Error("Network error: ${e.message}", e)
+                if (attempt < delaysBetweenAttempts.size) {
+                    delay(delaysBetweenAttempts[attempt])
+                }
             }
         }
-        return lastResult
+        return lastError
     }
 }

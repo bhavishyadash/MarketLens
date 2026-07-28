@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.TrendingDown
@@ -20,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.marketlens.data.model.AlertItem
 import com.example.marketlens.data.model.MarketIndex
 import com.example.marketlens.data.model.MarketMover
 import com.example.marketlens.data.model.WatchlistItem
@@ -68,10 +66,6 @@ private fun DashboardContent(state: DashboardState, onRefresh: () -> Unit) {
         }
         item { MarketSnapshotCard(state.topGainer, state.topLoser) }
         item { WatchlistPreviewCard(state.watchlistPreview) }
-        if (state.recentAlerts.isNotEmpty()) {
-            item { Text("Recent Alerts", style = MaterialTheme.typography.titleLarge) }
-            items(state.recentAlerts) { AlertCard(it) }
-        }
     }
 }
 
@@ -139,16 +133,6 @@ private fun WatchlistPreviewCard(items: List<WatchlistItem>) {
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun AlertCard(alert: AlertItem) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), Arrangement.spacedBy(4.dp)) {
-            Text(alert.message, style = MaterialTheme.typography.bodyMedium)
-            Text(alert.timestamp, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

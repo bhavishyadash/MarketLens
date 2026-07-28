@@ -1,6 +1,7 @@
 package com.example.marketlens.data
 
 import com.example.marketlens.data.model.StockQuote
+import java.util.concurrent.ConcurrentHashMap
 
 object QuoteCache {
 
@@ -8,7 +9,7 @@ object QuoteCache {
 
     private data class CachedQuote(val quote: StockQuote, val fetchedAt: Long)
 
-    private val cache = mutableMapOf<String, CachedQuote>()
+    private val cache = ConcurrentHashMap<String, CachedQuote>()
 
     fun get(symbol: String): StockQuote? {
         val entry = cache[symbol] ?: return null

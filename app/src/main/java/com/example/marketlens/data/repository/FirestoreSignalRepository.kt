@@ -78,6 +78,19 @@ class FirestoreSignalRepository(
         }
     }
 
+    override suspend fun addSeenArticleIds(articleIds: List<Long>) {
+        if (articleIds.isEmpty()) return
+        try {
+            val collection = seenCollection() ?: return
+            val batch = db.batch()
+            articleIds.forEach { id ->
+                batch.set(collection.document(id.toString()), mapOf("articleId" to id))
+            }
+            batch.commit().await()
+        } catch (e: Exception) {
+        }
+    }
+
     override suspend fun deleteSignal(signalId: String): ApiResult<Unit> {
         return try {
             val collection = signalsCollection() ?: return ApiResult.Error("Not signed in")

@@ -6,7 +6,6 @@ import com.example.marketlens.data.model.StockCandle
 import com.example.marketlens.data.model.StockProfile
 
 enum class Timeframe(val label: String, val resolution: String, val daysBack: Int) {
-    ONE_WEEK    ("1W", "60",  7),
     ONE_MONTH   ("1M", "D",  30),
     THREE_MONTHS("3M", "D",  90),
     ONE_YEAR    ("1Y", "W", 365)

@@ -27,10 +27,10 @@ class AlertsViewModel(
     fun deleteAlert(alertId: String) {
         viewModelScope.launch {
             alertRepo.deleteAlert(alertId)
+            Firebase.analytics.logEvent("alert_deleted") {
+                param("alert_id", alertId)
+            }
             loadAlerts()
-        }
-        Firebase.analytics.logEvent("alert_deleted") {
-            param("alert_id", alertId)
         }
     }
 
