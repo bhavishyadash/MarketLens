@@ -12,4 +12,4 @@ list, architecture overview, and screen-by-screen breakdown.
 - Jetpack Compose
 - MVVM Architecture
 - Firebase (Auth, Firestore, Analytics)
-- Finnhub + Yahoo Finance (free-tier market & news APIs)
+- Yahoo Finance (quotes, search, profiles, charts, and news)

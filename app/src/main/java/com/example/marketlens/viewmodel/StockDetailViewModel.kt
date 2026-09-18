@@ -1,5 +1,6 @@
 package com.example.marketlens.viewmodel
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -15,10 +16,12 @@ import com.example.marketlens.data.repository.AlertRepository
 import com.example.marketlens.data.repository.MarketRepository
 import com.example.marketlens.data.repository.NewsRepository
 import com.example.marketlens.data.repository.WatchlistRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -33,7 +36,8 @@ class StockDetailViewModel(
     private val _state = MutableStateFlow(StockDetailState())
     val state: StateFlow<StockDetailState> = _state.asStateFlow()
 
-    private val symbol: String = savedStateHandle["symbol"] ?: "UNKNOWN"
+    private val symbol: String = Uri.decode(savedStateHandle["symbol"] ?: "UNKNOWN")
+    private var candleJob: Job? = null
 
     init { loadAll(symbol, Timeframe.ONE_MONTH) }
 
@@ -172,7 +176,7 @@ class StockDetailViewModel(
                     val q = quoteResult.data
                     _state.value = StockDetailState(
                         symbol            = q.symbol,
-                        name              = (profileResult as? ApiResult.Success)?.data?.name ?: q.symbol,
+                        name              = (profileResult as? ApiResult.Success)?.data?.name ?: q.name,
                         price             = q.price,
                         percentChange     = q.percentChange,
                         isInWatchlist     = inWatchlist,
@@ -193,9 +197,15 @@ class StockDetailViewModel(
     }
 
     private fun loadCandle(symbol: String, timeframe: Timeframe) {
-        viewModelScope.launch {
+        candleJob?.cancel()
+        candleJob = viewModelScope.launch {
             val now = Instant.now().epochSecond
             val result = repo.getCandles(symbol, timeframe.resolution, now - (timeframe.daysBack * 86400L), now)
+
+            // The repository may translate cancellation into an ApiResult.Error, so also
+            // verify this is still the active request before publishing its result.
+            if (!isActive || _state.value.selectedTimeframe != timeframe) return@launch
+
             _state.value = _state.value.copy(
                 candle          = (result as? ApiResult.Success)?.data,
                 candleError     = (result as? ApiResult.Error)?.message,

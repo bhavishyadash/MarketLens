@@ -77,20 +77,35 @@ class WatchlistViewModel(
             return@coroutineScope
         }
 
-        val deferredQuotes = symbols.map { symbol ->
-            async { repo.getQuote(symbol) }
+        val quoteResults = symbols
+            .map { symbol -> symbol to async { repo.getQuote(symbol) } }
+            .map { (symbol, deferred) -> symbol to deferred.await() }
+
+        val freshItemsBySymbol = quoteResults.mapNotNull { (_, result) ->
+            (result as? ApiResult.Success<StockQuote>)?.data?.let { quote ->
+                quote.symbol to WatchlistRowUi(quote.symbol, quote.price, quote.percentChange)
+            }
+        }.toMap()
+
+        if (freshItemsBySymbol.isEmpty()) {
+            if (showLoading || _state.value.items.isEmpty()) {
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                    errorMessage = "Could not load watchlist prices. Check your connection and try again."
+                )
+            } else {
+                // A silent refresh should never erase prices that were already visible.
+                _state.value = _state.value.copy(isLoading = false)
+            }
+            return@coroutineScope
         }
 
-        val items = deferredQuotes
-            .map { it.await() }
-            .filterIsInstance<ApiResult.Success<StockQuote>>()
-            .map { it.data }
-            .map { WatchlistRowUi(it.symbol, it.price, it.percentChange) }
+        val existingItemsBySymbol = _state.value.items.associateBy { it.symbol }
+        val items = symbols.mapNotNull { symbol ->
+            freshItemsBySymbol[symbol]
+                ?: if (showLoading) null else existingItemsBySymbol[symbol]
+        }
 
-        _state.value = WatchlistState(
-            items        = items,
-            isLoading    = false,
-            errorMessage = if (items.isEmpty() && showLoading) "Could not load price data." else null
-        )
+        _state.value = WatchlistState(items = items, isLoading = false)
     }
 }

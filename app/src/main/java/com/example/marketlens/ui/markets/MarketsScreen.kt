@@ -41,8 +41,31 @@ fun MarketsScreen(onStockClick: (StockRowUi) -> Unit, viewModel: MarketsViewMode
                     onValueChange = viewModel::onQueryChange,
                     modifier      = Modifier.fillMaxWidth(),
                     placeholder   = { Text("Search symbol or name…") },
-                    singleLine    = true
+                    singleLine    = true,
+                    trailingIcon  = if (state.isSearching) {
+                        {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                    } else null
                 )
+                state.searchError?.let { message ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = message,
+                            modifier = Modifier.weight(1f),
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        TextButton(onClick = viewModel::refresh) { Text("Retry") }
+                    }
+                }
                 LazyColumn(
                     Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -51,11 +74,12 @@ fun MarketsScreen(onStockClick: (StockRowUi) -> Unit, viewModel: MarketsViewMode
                     items(state.filteredStocks, key = { it.symbol }) { stock ->
                         StockRow(stock) { onStockClick(stock) }
                     }
-                    if (state.filteredStocks.isEmpty()) {
+                    if (state.filteredStocks.isEmpty() && !state.isSearching && state.searchError == null) {
                         item {
                             Box(Modifier.fillMaxWidth().padding(32.dp), Alignment.Center) {
                                 Text(
-                                    "No results for \"${state.query}\"",
+                                    if (state.query.isBlank()) "No market data available"
+                                    else "No results for \"${state.query.trim()}\"",
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }

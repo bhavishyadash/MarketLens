@@ -38,11 +38,17 @@ object AppContainer {
     }
 
     val repository: MarketRepository by lazy {
-        RealMarketRepository(api = NetworkModule.marketApi, yahoo = NetworkModule.yahooFinanceApi)
+        RealMarketRepository(
+            yahoo = NetworkModule.yahooFinanceApi,
+            session = NetworkModule.yahooFinanceSession
+        )
     }
 
     val newsRepository: NewsRepository by lazy {
-        FirestoreNewsRepository(api = NetworkModule.marketApi, db = FirebaseModule.firestore)
+        FirestoreNewsRepository(
+            yahoo = NetworkModule.yahooFinanceApi,
+            db = FirebaseModule.firestore
+        )
     }
 
     val watchlistRepository: WatchlistRepository by lazy {

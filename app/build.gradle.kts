@@ -1,14 +1,7 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.gms.google-services")
-}
-
-val localProps = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) load(file.inputStream())
 }
 
 android {
@@ -21,21 +14,10 @@ android {
         targetSdk     = 34
         versionCode   = 1
         versionName   = "1.0"
-
-        buildConfigField(
-            "String",
-            "FINNHUB_API_KEY",
-            "\"${localProps.getProperty("FINNHUB_API_KEY", "")}\""
-        )
     }
 
     buildFeatures {
-        compose     = true
-        buildConfig = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
+        compose = true
     }
 
     compileOptions {
@@ -43,7 +25,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions { jvmTarget = "17" }
+
 }
 
 dependencies {
@@ -51,6 +33,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.activity:activity-compose:1.9.2")
+    implementation("androidx.fragment:fragment:1.8.5")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
@@ -71,5 +54,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
