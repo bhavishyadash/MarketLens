@@ -33,13 +33,14 @@ The app is built as a portfolio-grade Android project with a strong emphasis on 
 - Live index tracking (S&P 500, NASDAQ, Dow Jones via ETF proxies)
 - Top gainer and top loser from a curated stock universe
 - Watchlist preview with live prices
+- Debounced Yahoo Finance search beyond the curated default list
 - Quick access to alerts and signals
 
 ### Stock Detail & Analytics
 - Custom Canvas-drawn price charts — no third-party charting library
 - **3 supported timeframes**: 1M, 3M, 1Y
-- Chart data sourced from Yahoo Finance
-- Real company data via Finnhub: name, industry, exchange, market cap, P/E ratio, 52W high/low, beta
+- Quotes, charts, company identity, exchange, industry, market cap, P/E ratio, 52W high/low, and beta sourced from Yahoo Finance
+- Graceful profile fallback when optional Yahoo fundamentals are unavailable
 - **Target Return Simulator** — computes from 2 years of weekly price history:
   - Historical probability of reaching the target price
   - Median weeks to reach the target
@@ -48,7 +49,7 @@ The app is built as a portfolio-grade Android project with a strong emphasis on 
 - Per-stock financial news feed
 
 ### News & Signals
-- Financial news feed sourced from Finnhub, cached in Firestore (1-hour TTL)
+- Financial news feed sourced from Yahoo Finance search, cached in Firestore (1-hour TTL)
 - News and signals combined in a single tabbed screen
 - News-driven signal engine using keyword detection across **8 market sectors**:
   Technology, Energy, Financials, Healthcare, Automotive, Geopolitical, ConsumerGoods, RealEstate
@@ -99,10 +100,9 @@ The app is built as a portfolio-grade Android project with a strong emphasis on 
 - **Firebase Firestore** (watchlist, alerts, signals, settings, news cache)
 
 ### Data & APIs
-- **Finnhub API** — live quotes, symbol search, company profile, key metrics, news
-- **Yahoo Finance API** — historical chart data (unofficial, browser User-Agent via OkHttp interceptor)
+- **Yahoo Finance web endpoints** — quotes, symbol search, profiles, key metrics, charts, and news
 - **Retrofit** — HTTP client
-- **OkHttp** — with custom interceptors for Finnhub token injection and Yahoo Finance User-Agent
+- **OkHttp** — browser-like request headers plus a short-lived cookie/crumb session for optional fundamentals
 - **Moshi** — JSON parsing with Kotlin reflection adapter
 
 ### Background Processing
@@ -118,7 +118,7 @@ The app is built as a portfolio-grade Android project with a strong emphasis on 
 
 MarketLens follows a clean **MVVM architecture**:
 ```text
-Remote APIs (Finnhub, Yahoo Finance) / Firebase
+Yahoo Finance / Firebase
                     ↓
               Repository Layer
           (Real + Firestore impls)
@@ -167,8 +167,7 @@ Remote APIs (Finnhub, Yahoo Finance) / Firebase
 
 | API | Used For | Auth |
 |---|---|---|
-| Finnhub | Quotes, search, profile, metrics, news | API key via query param |
-| Yahoo Finance | Historical price charts | None (browser User-Agent header) |
+| Yahoo Finance | Quotes, search, profiles, metrics, charts, news | No API key; cookie/crumb used for optional fundamentals |
 | Firebase Auth | User authentication | Firebase project config |
 | Firebase Firestore | All user data + news cache | Firebase project config |
 
@@ -183,4 +182,4 @@ Remote APIs (Finnhub, Yahoo Finance) / Firebase
 
 ## Disclaimer
 
-MarketLens is an educational project. All data, signals, and analytics are informational only and do not constitute financial advice. Past performance does not guarantee future results.
+MarketLens is an educational project. Yahoo Finance access uses undocumented web endpoints and may change or be rate-limited. Market coverage, delays, and available fields vary by security and exchange. All data, signals, and analytics are informational only and do not constitute financial advice. Past performance does not guarantee future results.

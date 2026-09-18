@@ -1,5 +1,7 @@
 package com.example.marketlens.navigation
 
+import android.net.Uri
+
 sealed class AppRoute(val route: String, val label: String) {
     data object Auth      : AppRoute("auth",      "")
     data object Dashboard : AppRoute("dashboard", "Dashboard")
@@ -11,6 +13,6 @@ sealed class AppRoute(val route: String, val label: String) {
     data object Settings  : AppRoute("settings",  "Settings")
 
     data object StockDetail : AppRoute("stock/{symbol}", "") {
-        fun create(symbol: String) = "stock/$symbol"
+        fun create(symbol: String) = "stock/${Uri.encode(symbol)}"
     }
 }

@@ -5,7 +5,9 @@ data class MarketsState(
     val allStocks: List<StockRowUi> = emptyList(),
     val filteredStocks: List<StockRowUi> = emptyList(),
     val isLoading: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isSearching: Boolean = false,
+    val searchError: String? = null
 )
 
 data class StockRowUi(

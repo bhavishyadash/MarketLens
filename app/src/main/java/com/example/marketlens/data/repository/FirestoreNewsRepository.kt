@@ -3,19 +3,18 @@ package com.example.marketlens.data.repository
 import com.example.marketlens.data.firebase.FirebaseModule
 import com.example.marketlens.data.model.NewsArticle
 import com.example.marketlens.data.network.ApiResult
-import com.example.marketlens.data.network.MarketApi
-import com.example.marketlens.data.network.dto.NewsArticleDto
+import com.example.marketlens.data.network.YahooFinanceApi
+import com.example.marketlens.data.network.dto.YahooNewsItemDto
 import com.example.marketlens.util.SectorMapper
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.CollectionReference
 import kotlinx.coroutines.tasks.await
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.nio.charset.StandardCharsets
+import java.util.UUID
 
 class FirestoreNewsRepository(
-    private val api: MarketApi,
+    private val yahoo: YahooFinanceApi,
     private val db: FirebaseFirestore = FirebaseModule.firestore
 ) : NewsRepository {
 
@@ -43,7 +42,11 @@ class FirestoreNewsRepository(
                 return ApiResult.Success(articles)
             }
 
-            val dtos = api.getMarketNews("general")
+            val dtos = yahoo.search(
+                query       = "stock market today",
+                quotesCount = 0,
+                newsCount   = 25
+            ).news.orEmpty()
             if (dtos.isEmpty()) return ApiResult.Error("No news articles available right now")
 
             val articles = dtos.map { it.toDomain(symbol = "") }
@@ -74,14 +77,14 @@ class FirestoreNewsRepository(
                 return ApiResult.Success(articles)
             }
 
-            val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-            val toDate    = formatter.format(Date())
-            val fromDate  = formatter.format(Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L))
-
-            val dtos = api.getCompanyNews(symbol, fromDate, toDate)
+            val dtos = yahoo.search(
+                query       = symbol,
+                quotesCount = 0,
+                newsCount   = 20
+            ).news.orEmpty()
             if (dtos.isEmpty()) return ApiResult.Error("No recent news found for $symbol")
 
-            val articles = dtos.take(20).map { it.toDomain(symbol = symbol) }
+            val articles = dtos.map { it.toDomain(symbol = symbol) }
             saveToFirestore(collectionRef, articles)
 
             ApiResult.Success(articles.sortedByDescending { it.publishedAt })
@@ -134,15 +137,26 @@ class FirestoreNewsRepository(
         }
     }
 
-    private fun NewsArticleDto.toDomain(symbol: String) = NewsArticle(
-        id          = id,
-        headline    = headline,
-        source      = source,
-        summary     = summary,
-        url         = url,
-        imageUrl    = image,
-        publishedAt = datetime,
+    private fun YahooNewsItemDto.toDomain(symbol: String) = NewsArticle(
+        id          = stableId(),
+        headline    = title.orEmpty(),
+        source      = publisher?.takeIf { it.isNotBlank() } ?: "Yahoo Finance",
+        summary     = summary.orEmpty(),
+        url         = link.orEmpty(),
+        imageUrl    = "",
+        publishedAt = publishedAt ?: 0L,
         symbol      = symbol,
-        sector      = SectorMapper.map(headline)
+        sector      = SectorMapper.map(title.orEmpty())
     )
+
+    private fun YahooNewsItemDto.stableId(): Long {
+        val seed = uuid.orEmpty().ifBlank {
+            link.orEmpty().ifBlank { "${title.orEmpty()}|${publishedAt ?: 0L}" }
+        }
+        val stableUuid = runCatching { UUID.fromString(seed) }
+            .getOrElse {
+                UUID.nameUUIDFromBytes(seed.toByteArray(StandardCharsets.UTF_8))
+            }
+        return stableUuid.mostSignificantBits xor stableUuid.leastSignificantBits
+    }
 }
